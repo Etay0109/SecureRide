@@ -43,7 +43,7 @@ const VALUES = [
     icon: "handshake",
     title: "Secure Trades",
     description:
-      "Our dual-confirmation trade system ensures both parties agree before ownership is transferred — no surprises.",
+      "Our dual-confirmation trade system ensures both parties agree before ownership is transferred - no surprises.",
   },
   {
     icon: "support_agent",
@@ -98,24 +98,28 @@ export default function AboutPage() {
             >
               Home
             </Link>
-            <Link
-              to="/buy"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Buy
-            </Link>
-            <Link
-              to="/sell"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/verify"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Verify Ownership
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/buy"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Buy
+                </Link>
+                <Link
+                  to="/sell"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Sell
+                </Link>
+                <Link
+                  to="/verify"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Verify Ownership
+                </Link>
+              </>
+            )}
             <Link
               to="/about"
               className="text-blue-700 font-bold border-b-2 border-blue-700 pb-1 tracking-tight"
@@ -224,7 +228,7 @@ export default function AboutPage() {
                 Secure Ride creates a verified digital record of ownership. When
                 a stolen vehicle is flagged in our system and someone attempts
                 to register it, we automatically block their account and alert
-                our admin team — stopping theft in its tracks.
+                our admin team - stopping theft in its tracks.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -262,7 +266,7 @@ export default function AboutPage() {
                 Simple, Secure Process
               </h2>
               <p className="text-on-surface-variant max-w-xl mx-auto">
-                From registration to trade — every step is designed with safety
+                From registration to trade - every step is designed with safety
                 in mind.
               </p>
             </div>

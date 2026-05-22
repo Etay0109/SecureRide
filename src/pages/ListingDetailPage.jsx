@@ -241,24 +241,28 @@ export default function ListingDetailPage() {
             >
               Home
             </Link>
-            <Link
-              to="/buy"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Buy
-            </Link>
-            <Link
-              to="/sell"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/verify"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Verify Ownership
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/buy"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Buy
+                </Link>
+                <Link
+                  to="/sell"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Sell
+                </Link>
+                <Link
+                  to="/verify"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Verify Ownership
+                </Link>
+              </>
+            )}
             <Link
               to="/about"
               className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"

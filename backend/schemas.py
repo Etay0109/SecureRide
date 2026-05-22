@@ -8,6 +8,7 @@ class RegisterRequest(BaseModel):
     last_name: str
     email: EmailStr
     password: str
+    id_number: str
 
 
 class LoginRequest(BaseModel):
@@ -20,6 +21,7 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     email: str
+    id_number: str = ""
     is_admin: bool = False
     blocked: bool = False
     blocked_reason: str | None = None
@@ -116,7 +118,7 @@ class CreateTradeRequest(BaseModel):
 
 class TradeResponse(BaseModel):
     id: str
-    listing_id: str
+    listing_id: str | None
     buyer_id: str
     seller_id: str
     frame_number: str

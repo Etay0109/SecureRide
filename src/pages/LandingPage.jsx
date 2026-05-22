@@ -57,24 +57,28 @@ export default function LandingPage() {
             >
               Home
             </Link>
-            <Link
-              to="/buy"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Buy
-            </Link>
-            <Link
-              to="/sell"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/verify"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Verify Ownership
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/buy"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Buy
+                </Link>
+                <Link
+                  to="/sell"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Sell
+                </Link>
+                <Link
+                  to="/verify"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Verify Ownership
+                </Link>
+              </>
+            )}
             <Link
               to="/about"
               className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
@@ -350,82 +354,14 @@ export default function LandingPage() {
       </main>
 
       <footer className="bg-slate-50 w-full py-16 px-8 border-t border-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
-          <div className="col-span-1">
-            <div className="text-xl font-black text-slate-900 mb-6">
-              Secure Ride
-            </div>
-            <p className="text-slate-500 text-sm leading-relaxed mb-6">
-              &copy; 2026. Providing a professional framework for vehicle
-              verification and secure ownership transfer.
-            </p>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-xl font-black text-slate-900 mb-6">
+            Secure Ride
           </div>
-
-          <div>
-            <h4 className="font-bold mb-6 text-on-surface">Explore</h4>
-            <ul className="space-y-4">
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Explore Vehicles
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Sell Your Ride
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-6 text-on-surface">Support</h4>
-            <ul className="space-y-4">
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Verification Protocol
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Fleet Support
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-6 text-on-surface">Legal</h4>
-            <ul className="space-y-4">
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Legal &amp; Privacy
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-slate-500 hover:text-blue-700 transition-colors text-sm"
-                  href="#"
-                >
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
-          </div>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            &copy; 2026. Providing a professional framework for vehicle
+            verification and secure ownership transfer.
+          </p>
         </div>
       </footer>
 

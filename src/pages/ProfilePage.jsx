@@ -297,24 +297,28 @@ export default function ProfilePage() {
             >
               Home
             </Link>
-            <Link
-              to="/buy"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Buy
-            </Link>
-            <Link
-              to="/sell"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/verify"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Verify Ownership
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/buy"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Buy
+                </Link>
+                <Link
+                  to="/sell"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Sell
+                </Link>
+                <Link
+                  to="/verify"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Verify Ownership
+                </Link>
+              </>
+            )}
             <Link
               to="/about"
               className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
@@ -908,7 +912,7 @@ function TradeCard({ trade, isBuyer, isSeller, onAction }) {
                 : "radio_button_unchecked"}
             </span>
             <span className="text-xs text-on-surface">
-              Buyer confirmed receipt
+              Buyer confirmed transfer
             </span>
           </div>
         </div>

@@ -75,6 +75,9 @@ async def create_tables():
             "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS is_admin_chat BOOLEAN DEFAULT false"
         ))
         await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_number VARCHAR(20) DEFAULT ''"
+        ))
+        await conn.execute(text(
             "ALTER TABLE conversations ALTER COLUMN listing_id DROP NOT NULL"
         ))
         await conn.execute(text(

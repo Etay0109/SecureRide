@@ -11,9 +11,15 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
     const form = e.target;
     const password = form["register-password"].value;
     const confirmPassword = form["register-confirm-password"].value;
+    const idNumber = form["register-id-number"].value.trim();
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+
+    if (!idNumber) {
+      setError("ID number is required");
       return;
     }
 
@@ -27,6 +33,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
           last_name: form["register-last-name"].value,
           email: form["register-email"].value,
           password,
+          id_number: idNumber,
         }),
       });
 
@@ -135,6 +142,23 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
 
           <div>
             <label
+              htmlFor="register-id-number"
+              className="block text-sm font-semibold text-on-surface mb-1.5"
+            >
+              ID Number
+            </label>
+            <input
+              id="register-id-number"
+              name="register-id-number"
+              type="text"
+              required
+              placeholder="Enter your ID number"
+              className="w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+            />
+          </div>
+
+          <div>
+            <label
               htmlFor="register-email"
               className="block text-sm font-semibold text-on-surface mb-1.5"
             >
@@ -183,24 +207,6 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
               className="w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
             />
           </div>
-
-          <label className="flex items-start gap-2 cursor-pointer text-sm">
-            <input
-              type="checkbox"
-              required
-              className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary/40"
-            />
-            <span className="text-on-surface-variant">
-              I agree to the{" "}
-              <a href="#" className="text-primary font-medium hover:underline">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="#" className="text-primary font-medium hover:underline">
-                Privacy Policy
-              </a>
-            </span>
-          </label>
 
           <button
             type="submit"

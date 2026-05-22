@@ -107,24 +107,28 @@ export default function BuyPage() {
             >
               Home
             </Link>
-            <Link
-              to="/buy"
-              className="text-blue-700 font-bold border-b-2 border-blue-700 pb-1 tracking-tight"
-            >
-              Buy
-            </Link>
-            <Link
-              to="/sell"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/verify"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Verify Ownership
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/buy"
+                  className="text-blue-700 font-bold border-b-2 border-blue-700 pb-1 tracking-tight"
+                >
+                  Buy
+                </Link>
+                <Link
+                  to="/sell"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Sell
+                </Link>
+                <Link
+                  to="/verify"
+                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
+                >
+                  Verify Ownership
+                </Link>
+              </>
+            )}
             <Link
               to="/about"
               className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
