@@ -5,7 +5,7 @@ from sqlalchemy import select, or_, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import Trade, Listing, Vehicle, User, Conversation, Message
+from models import Trade, Listing, Vehicle, User, Conversation, Message, UserInteraction
 from schemas import CreateTradeRequest, TradeResponse
 from routes.auth import require_active_user
 
@@ -76,6 +76,13 @@ async def create_trade(
         status="pending_seller",
     )
     db.add(trade)
+
+    db.add(UserInteraction(
+        user_id=user_id,
+        listing_id=listing.id,
+        action_type="trade",
+    ))
+
     await db.commit()
     await db.refresh(trade)
     return await trade_to_response(trade, db)
@@ -173,6 +180,30 @@ async def cancel_trade(
         raise HTTPException(status_code=400, detail="Trade cannot be cancelled in current state")
 
     trade.status = "cancelled"
+    await db.commit()
+    await db.refresh(trade)
+    return await trade_to_response(trade, db)
+
+
+@router.put("/{trade_id}/abort")
+async def abort_trade(
+    trade_id: str,
+    current_user: User = Depends(require_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Either party can abort an accepted trade that didn't go through."""
+    user_id = current_user.id
+    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
+    if not trade:
+        raise HTTPException(status_code=404, detail="Trade not found")
+    if trade.buyer_id != user_id and trade.seller_id != user_id:
+        raise HTTPException(status_code=403, detail="Not a participant in this trade")
+    if trade.status != "accepted":
+        raise HTTPException(status_code=400, detail="Only accepted trades can be aborted")
+
+    trade.status = "cancelled"
+    trade.seller_confirmed = False
+    trade.buyer_confirmed = False
     await db.commit()
     await db.refresh(trade)
     return await trade_to_response(trade, db)

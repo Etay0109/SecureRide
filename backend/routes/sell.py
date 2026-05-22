@@ -61,6 +61,12 @@ async def create_listing(
     if vehicle.stolen:
         raise HTTPException(status_code=400, detail="Cannot sell a vehicle reported as stolen")
 
+    existing_listing = (await db.execute(
+        select(Listing).where(Listing.frame_number == body.frame_number)
+    )).scalar_one_or_none()
+    if existing_listing:
+        raise HTTPException(status_code=400, detail="This vehicle already has an active listing")
+
     listing = Listing(
         frame_number=body.frame_number,
         seller_id=user_id,
@@ -76,6 +82,23 @@ async def create_listing(
     await db.commit()
     await db.refresh(listing)
     return listing_to_response(listing, vehicle)
+
+
+@router.get("/available-vehicles")
+async def available_vehicles(
+    current_user: User = Depends(require_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the user's vehicles that are not stolen and don't have an active listing."""
+    listed_frames_q = select(Listing.frame_number).where(Listing.seller_id == current_user.id)
+    result = await db.execute(
+        select(Vehicle).where(
+            Vehicle.owner_id == current_user.id,
+            Vehicle.stolen == False,  # noqa: E712
+            Vehicle.frame_number.notin_(listed_frames_q),
+        )
+    )
+    return result.scalars().all()
 
 
 @router.get("/listings")

@@ -52,12 +52,12 @@ export default function SellPage() {
 
   const fetchVehicles = async () => {
     try {
-      const res = await fetch("/api/verify/my-vehicles", {
+      const res = await fetch("/api/sell/available-vehicles", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setVehicles(data.filter((v) => !v.stolen));
+        setVehicles(data);
       }
     } catch {
       /* silently fail */

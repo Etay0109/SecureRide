@@ -60,10 +60,24 @@ export default function ListingDetailPage() {
       .catch(() => {});
   }, [id, user]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token || !id) return;
+    fetch("/api/recommendations/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ listing_id: id, action_type: "view" }),
+    }).catch(() => {});
+  }, [id]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    navigate("/");
   };
 
   const openLogin = () => {
@@ -1095,6 +1109,19 @@ function TradeStatusCard({ trade, role, onAction }) {
             You confirmed — waiting for {otherName} to confirm
           </div>
         )}
+        <button
+          onClick={() => {
+            if (confirm("Are you sure the trade did not happen? This will cancel the trade.")) {
+              onAction(trade.id, "abort");
+            }
+          }}
+          className="w-full mt-2 py-2 bg-white text-red-600 border border-red-200 rounded-lg font-bold text-xs hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-1"
+        >
+          <span className="material-symbols-outlined text-sm">
+            cancel
+          </span>
+          Trade Did Not Happen
+        </button>
       </div>
     );
   }

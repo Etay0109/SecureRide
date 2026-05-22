@@ -9,6 +9,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     id_number: str
+    id_card_image: str
 
 
 class LoginRequest(BaseModel):
@@ -25,6 +26,7 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     blocked: bool = False
     blocked_reason: str | None = None
+    registration_status: str = "approved"
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -44,6 +46,19 @@ class VerifyRequest(BaseModel):
     model: str | None = None
     color: str | None = None
     additional_details: str | None = None
+
+
+class RejectRegistrationRequest(BaseModel):
+    reason: str
+
+
+class ResubmitRegistrationRequest(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: str | None = None
+    last_name: str | None = None
+    id_number: str | None = None
+    id_card_image: str | None = None
 
 
 class UpdateEmailRequest(BaseModel):
@@ -153,6 +168,32 @@ class MessageResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TrackInteractionRequest(BaseModel):
+    listing_id: str
+    action_type: str
+
+
+class RecommendedListingResponse(BaseModel):
+    id: str
+    frame_number: str
+    seller_id: str
+    condition: str
+    ownership_duration: str
+    price: float
+    description: str | None
+    photos: list[str]
+    created_at: datetime
+    vehicle_brand: str | None = None
+    vehicle_model: str | None = None
+    vehicle_type: str | None = None
+    vehicle_color: str | None = None
+    city: str | None = None
+    address: str | None = None
+    seller_first_name: str | None = None
+    seller_last_name: str | None = None
+    score: float = 0.0
 
 
 class ConversationResponse(BaseModel):

@@ -33,7 +33,7 @@ async def get_db():
 
 async def create_tables():
     async with engine.begin() as conn:
-        from models import User, Vehicle, Listing, Conversation, Message, Trade  # noqa: F401
+        from models import User, Vehicle, Listing, Conversation, Message, Trade, UserInteraction  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
     from sqlalchemy import text
@@ -75,7 +75,25 @@ async def create_tables():
             "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS is_admin_chat BOOLEAN DEFAULT false"
         ))
         await conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_number VARCHAR(20) DEFAULT ''"
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_number VARCHAR(20) NOT NULL DEFAULT ''"
+        ))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_indexes
+                    WHERE tablename = 'users' AND indexname = 'uq_users_id_number'
+                ) THEN
+                    CREATE UNIQUE INDEX uq_users_id_number ON users (id_number)
+                    WHERE id_number != '';
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_status VARCHAR(20) DEFAULT 'approved'"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_card_image TEXT"
         ))
         await conn.execute(text(
             "ALTER TABLE conversations ALTER COLUMN listing_id DROP NOT NULL"

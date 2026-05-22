@@ -5,4 +5,5 @@ asyncpg
 python-dotenv
 bcrypt
 python-jose[cryptography]
+cryptography
 pydantic[email]>=2.0

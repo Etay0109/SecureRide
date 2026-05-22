@@ -9,10 +9,11 @@ import bcrypt
 from jose import jwt, JWTError
 
 from database import get_db
+from encryption import encrypt_image
 from models import User
 from schemas import (
     RegisterRequest, LoginRequest, UserResponse, TokenResponse,
-    UpdateEmailRequest, UpdatePasswordRequest,
+    UpdateEmailRequest, UpdatePasswordRequest, ResubmitRegistrationRequest,
 )
 
 router = APIRouter()
@@ -38,13 +39,26 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_202_ACCEPTED)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    if not body.id_number or not body.id_number.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="ID number is required",
+        )
+
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A user with this email already exists",
+        )
+
+    existing_id = await db.execute(select(User).where(User.id_number == body.id_number.strip()))
+    if existing_id.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this ID number already exists",
         )
 
     user = User(
@@ -53,11 +67,15 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         email=body.email,
         password=hash_password(body.password),
         id_number=body.id_number,
+        id_card_image=encrypt_image(body.id_card_image),
+        registration_status="pending",
     )
     db.add(user)
     await db.commit()
-    await db.refresh(user)
-    return user
+    return {
+        "status": "pending",
+        "message": "Your registration request has been sent for admin approval. The approval process may take up to 3 business days.",
+    }
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -69,6 +87,26 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
+        )
+
+    if user.registration_status == "pending":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your registration request is still waiting for admin approval.",
+        )
+
+    if user.registration_status == "rejected":
+        reason = user.blocked_reason or "No reason provided"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your registration was permanently rejected. Reason: {reason}",
+        )
+
+    if user.registration_status == "changes_requested":
+        reason = user.blocked_reason or "No reason provided"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"__CHANGES_REQUESTED__|{reason}",
         )
 
     token = create_access_token({"sub": user.id, "email": user.email, "is_admin": user.is_admin})
@@ -132,6 +170,11 @@ async def require_active_user(
         raise HTTPException(
             status_code=403,
             detail=user.blocked_reason or "Your account has been blocked. Contact admin.",
+        )
+    if user.registration_status != "approved":
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has not been approved yet.",
         )
     return user
 
@@ -197,3 +240,41 @@ async def update_password(
     user.password = hash_password(body.new_password)
     await db.commit()
     return {"message": "Password updated"}
+
+
+@router.post("/resubmit", status_code=status.HTTP_202_ACCEPTED)
+async def resubmit_registration(
+    body: ResubmitRegistrationRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(body.password, user.password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.registration_status != "changes_requested":
+        raise HTTPException(
+            status_code=400,
+            detail="This account is not eligible for resubmission.",
+        )
+
+    if body.first_name:
+        user.first_name = body.first_name
+    if body.last_name:
+        user.last_name = body.last_name
+    if body.id_number:
+        user.id_number = body.id_number
+    if body.id_card_image:
+        user.id_card_image = encrypt_image(body.id_card_image)
+
+    user.registration_status = "pending"
+    user.blocked_reason = None
+    await db.commit()
+    return {
+        "status": "pending",
+        "message": "Your updated registration has been resubmitted for admin approval.",
+    }

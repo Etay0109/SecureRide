@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
@@ -34,6 +34,7 @@ export default function VerifyOwnership() {
   const [success, setSuccess] = useState(false);
   const [user, setUser] = useState(getStoredUser);
   const [activeStep, setActiveStep] = useState(0);
+  const navigate = useNavigate();
 
   const openLogin = () => {
     setShowRegister(false);
@@ -49,6 +50,7 @@ export default function VerifyOwnership() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    navigate("/");
   };
 
   const handleSubmit = async () => {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
@@ -31,11 +31,15 @@ function getStoredUser() {
 }
 
 export default function BuyPage() {
+  const location = useLocation();
   const [user, setUser] = useState(getStoredUser);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+
+  const [recommendations, setRecommendations] = useState([]);
+  const [recsLoading, setRecsLoading] = useState(false);
 
   const [typeFilter, setTypeFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("all");
@@ -51,10 +55,25 @@ export default function BuyPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token || !user) return;
+    setRecsLoading(true);
+    fetch("/api/recommendations/?limit=6", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setRecommendations(data))
+      .catch(() => {})
+      .finally(() => setRecsLoading(false));
+  }, [user, location.key]);
+
+  const navigate = useNavigate();
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    navigate("/");
   };
 
   const openLogin = () => {
@@ -310,6 +329,34 @@ export default function BuyPage() {
           </div>
         </div>
 
+        {/* Recommended for You */}
+        {user && recommendations.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-primary text-xl">
+                recommend
+              </span>
+              <h2 className="text-lg font-extrabold tracking-tight">
+                Recommended for You
+              </h2>
+              <span className="text-xs text-on-surface-variant bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
+                Based on your activity
+              </span>
+            </div>
+            {recsLoading ? (
+              <div className="text-sm text-on-surface-variant">Loading recommendations...</div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x">
+                {recommendations.map((listing) => (
+                  <div key={listing.id} className="flex-shrink-0 w-72 snap-start">
+                    <ListingCard listing={listing} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Results count */}
         <p className="text-sm text-on-surface-variant mb-6">
           {loading
@@ -522,6 +569,11 @@ function ListingCard({ listing }) {
           <InfoChip icon="tag" text={listing.frame_number} mono />
         </div>
 
+        {/* Match score */}
+        {listing.score != null && listing.score > 0 && (
+          <MatchScoreBar score={listing.score} />
+        )}
+
         {/* Seller info */}
         <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/15">
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
@@ -539,6 +591,38 @@ function ListingCard({ listing }) {
             {new Date(listing.created_at).toLocaleDateString()}
           </span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchScoreBar({ score }) {
+  const pct = Math.round(score * 100);
+  const color =
+    pct >= 75
+      ? "bg-green-500"
+      : pct >= 50
+        ? "bg-blue-500"
+        : pct >= 25
+          ? "bg-amber-500"
+          : "bg-slate-400";
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] font-semibold text-on-surface-variant flex items-center gap-1">
+          <span className="material-symbols-outlined text-xs text-primary">
+            analytics
+          </span>
+          Match Score
+        </span>
+        <span className="text-[11px] font-bold text-on-surface">{pct}%</span>
+      </div>
+      <div className="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${color}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

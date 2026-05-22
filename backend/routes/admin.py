@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
+from encryption import decrypt_image
 from models import User, Conversation, Message
+from schemas import RejectRegistrationRequest
 from routes.auth import require_admin
 
 router = APIRouter()
@@ -100,3 +102,100 @@ async def start_admin_chat(
     await db.commit()
     await db.refresh(conv)
     return {"conversation_id": conv.id}
+
+
+@router.get("/pending-registrations")
+async def list_pending_registrations(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User)
+        .where(User.registration_status == "pending")
+        .order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
+    return [
+        {
+            "id": u.id,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "email": u.email,
+            "id_number": u.id_number,
+            "id_card_image": decrypt_image(u.id_card_image) if u.id_card_image else None,
+            "created_at": u.created_at.isoformat(),
+        }
+        for u in users
+    ]
+
+
+@router.get("/pending-count")
+async def pending_registration_count(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(func.count()).select_from(User).where(User.registration_status == "pending")
+    )
+    return {"count": result.scalar()}
+
+
+@router.put("/registrations/{user_id}/approve")
+async def approve_registration(
+    user_id: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.registration_status != "pending":
+        raise HTTPException(status_code=400, detail="Registration is not in pending state")
+
+    user.registration_status = "approved"
+    user.id_card_image = None
+    await db.commit()
+    return {"status": "approved", "user_id": user.id}
+
+
+@router.put("/registrations/{user_id}/permanently-block")
+async def permanently_block_registration(
+    user_id: str,
+    body: RejectRegistrationRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.registration_status != "pending":
+        raise HTTPException(status_code=400, detail="Registration is not in pending state")
+
+    user.registration_status = "rejected"
+    user.blocked = True
+    user.blocked_reason = body.reason
+    user.id_card_image = None
+    await db.commit()
+    return {"status": "rejected", "user_id": user.id}
+
+
+@router.put("/registrations/{user_id}/request-changes")
+async def request_changes_registration(
+    user_id: str,
+    body: RejectRegistrationRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.registration_status != "pending":
+        raise HTTPException(status_code=400, detail="Registration is not in pending state")
+
+    user.registration_status = "changes_requested"
+    user.blocked_reason = body.reason
+    await db.commit()
+    return {"status": "changes_requested", "user_id": user.id}

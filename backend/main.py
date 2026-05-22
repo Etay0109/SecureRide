@@ -13,6 +13,7 @@ from routes.sell import router as sell_router
 from routes.chat import router as chat_router
 from routes.trade import router as trade_router
 from routes.admin import router as admin_router
+from routes.recommendations import router as recommendations_router
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ app.include_router(sell_router, prefix="/api/sell", tags=["sell"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(trade_router, prefix="/api/trades", tags=["trades"])
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
+app.include_router(recommendations_router, prefix="/api/recommendations", tags=["recommendations"])
 
 
 @app.get("/api/health")

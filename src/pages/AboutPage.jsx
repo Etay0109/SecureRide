@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
@@ -60,6 +60,7 @@ const STATS = [
 ];
 
 export default function AboutPage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(getStoredUser);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -68,6 +69,7 @@ export default function AboutPage() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    navigate("/");
   };
 
   const openLogin = () => {

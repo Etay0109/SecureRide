@@ -5,7 +5,7 @@ from sqlalchemy import select, or_, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import Conversation, Message, Listing, User, Vehicle
+from models import Conversation, Message, Listing, User, Vehicle, UserInteraction
 from schemas import (
     StartConversationRequest, SendMessageRequest,
     MessageResponse, ConversationResponse,
@@ -46,6 +46,13 @@ async def start_conversation(
         seller_id=listing.seller_id,
     )
     db.add(conv)
+
+    db.add(UserInteraction(
+        user_id=user_id,
+        listing_id=body.listing_id,
+        action_type="chat",
+    ))
+
     await db.commit()
     await db.refresh(conv)
     return {"id": conv.id}
