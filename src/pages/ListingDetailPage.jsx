@@ -5,9 +5,9 @@ import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
 
 const VEHICLE_ICONS = {
-  "electric-scooter": "electric_scooter",
-  bicycle: "pedal_bike",
-  "electric-bicycle": "electric_moped",
+  "Electric Scooter": "electric_scooter",
+  "Bicycle": "pedal_bike",
+  "Electric Bicycle": "electric_moped",
 };
 
 function getStoredUser() {
@@ -487,7 +487,7 @@ export default function ListingDetailPage() {
                     {listing.vehicle_model || ""}
                   </h1>
                   <p className="text-sm text-on-surface-variant capitalize mb-4">
-                    {(listing.vehicle_type || "").replace(/-/g, " ")}
+                    {listing.vehicle_type || ""}
                     {listing.vehicle_color && (
                       <> &middot; {listing.vehicle_color}</>
                     )}
@@ -691,7 +691,7 @@ export default function ListingDetailPage() {
                       />
                       <DetailRow
                         label="Type"
-                        value={(listing.vehicle_type || "").replace(/-/g, " ")}
+                        value={listing.vehicle_type || ""}
                         capitalize
                       />
                       <DetailRow

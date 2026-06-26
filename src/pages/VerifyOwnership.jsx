@@ -6,12 +6,12 @@ import NotificationBell from "../components/NotificationBell";
 
 const VEHICLE_TYPES = [
   {
-    id: "electric-scooter",
+    id: "Electric Scooter",
     label: "Electric Scooter",
     icon: "electric_scooter",
   },
-  { id: "bicycle", label: "Bicycle", icon: "pedal_bike" },
-  { id: "electric-bicycle", label: "Electric Bicycle", icon: "electric_moped" },
+  { id: "Bicycle", label: "Bicycle", icon: "pedal_bike" },
+  { id: "Electric Bicycle", label: "Electric Bicycle", icon: "electric_moped" },
 ];
 
 const STEPS = ["VEHICLE TYPE", "DETAILS", "IDENTITY"];
@@ -26,7 +26,7 @@ function getStoredUser() {
 }
 
 export default function VerifyOwnership() {
-  const [selectedType, setSelectedType] = useState("electric-scooter");
+  const [selectedType, setSelectedType] = useState("Electric Scooter");
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [loading, setLoading] = useState(false);

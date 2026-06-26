@@ -15,7 +15,7 @@ router = APIRouter()
 
 ACTION_WEIGHTS = {"view": 0.2, "chat": 3, "trade": 5}
 VEHICLE_TYPES = ["Bicycle", "Electric Scooter", "Electric Bicycle"]
-CONDITIONS = ["Used - Fair", "Used - Good", "Used - Excellent", "Used - Like New", "Brand New"]
+CONDITIONS = ["used", "brand_new"]
 PRICE_BANDS = [
     (0, 1000),
     (1000, 2500),
@@ -45,7 +45,7 @@ def _build_feature_vector(listing_row, city_index: dict[str, int], num_cities: i
     Each feature group is multiplied by its weight so that vehicle_type
     has the most influence, then price, city, and condition.
 
-    Layout: [type one-hot (3)] + [condition one-hot (2)] + [price bands one-hot (5)] + [city one-hot (N)]
+    Layout: [type one-hot (3)] + [condition one-hot (2)] + [price band one-hot (5)] + [city one-hot (N)]
     """
     listing, vehicle, _seller = listing_row
 

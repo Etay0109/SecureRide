@@ -5,20 +5,20 @@ import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
 
 const VEHICLE_ICONS = {
-  "electric-scooter": "electric_scooter",
-  bicycle: "pedal_bike",
-  "electric-bicycle": "electric_moped",
+  "Electric Scooter": "electric_scooter",
+  "Bicycle": "pedal_bike",
+  "Electric Bicycle": "electric_moped",
 };
 
 const VEHICLE_TYPE_OPTIONS = [
   { id: "all", label: "All Types", icon: "apps" },
   {
-    id: "electric-scooter",
+    id: "Electric Scooter",
     label: "Electric Scooter",
     icon: "electric_scooter",
   },
-  { id: "bicycle", label: "Bicycle", icon: "pedal_bike" },
-  { id: "electric-bicycle", label: "Electric Bicycle", icon: "electric_moped" },
+  { id: "Bicycle", label: "Bicycle", icon: "pedal_bike" },
+  { id: "Electric Bicycle", label: "Electric Bicycle", icon: "electric_moped" },
 ];
 
 function getStoredUser() {
@@ -546,7 +546,7 @@ function ListingCard({ listing }) {
               {listing.vehicle_brand || "Unknown"} {listing.vehicle_model || ""}
             </h3>
             <p className="text-xs text-on-surface-variant capitalize mt-0.5">
-              {(listing.vehicle_type || "").replace(/-/g, " ")}
+              {listing.vehicle_type || ""}
               {listing.vehicle_color && <> &middot; {listing.vehicle_color}</>}
             </p>
           </div>

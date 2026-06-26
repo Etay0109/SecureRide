@@ -5,9 +5,9 @@ import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
 
 const VEHICLE_ICONS = {
-  "electric-scooter": "electric_scooter",
-  bicycle: "pedal_bike",
-  "electric-bicycle": "electric_moped",
+  "Electric Scooter": "electric_scooter",
+  "Bicycle": "pedal_bike",
+  "Electric Bicycle": "electric_moped",
 };
 
 function getStoredUser() {
@@ -606,7 +606,7 @@ export default function ProfilePage() {
                         {v.brand || "Unknown"} {v.model || ""}
                       </p>
                       <p className="text-xs text-on-surface-variant capitalize">
-                        {v.vehicle_type.replace(/-/g, " ")}
+                        {v.vehicle_type}
                       </p>
                     </div>
                     {v.stolen ? (
