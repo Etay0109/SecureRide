@@ -32,7 +32,7 @@ Register & Verify Identity ➜ Register Your Vehicle ➜ List It for Sale ➜ Tr
 
 1. **Users register** with their national ID number and upload an ID card image (encrypted at rest).
 2. **Admins review** and approve each registration before the user gains access.
-3. **Vehicle owners** register their vehicles using the frame number, which is linked to their verified identity.
+3. **Vehicle owners** register their vehicles using the frame number and vehicle details. The vehicle is automatically linked to the authenticated user's verified identity.
 4. **Sellers** create marketplace listings for their verified vehicles.
 5. **Buyers** browse listings, chat with sellers, and initiate trades.
 6. **Trades** follow a structured flow with mutual confirmation before ownership transfers.
@@ -56,7 +56,7 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 ### 🔐 Identity & Access
 
 - User registration with **admin approval workflow** (pending → approved / rejected / changes requested)
-- ID card image upload with **Fernet encryption at rest** — images are deleted after admin review
+- ID card image upload during registration with **Fernet encryption at rest** — images are deleted after admin review
 - JWT-based authentication with protected routes
 - Admin dashboard for managing registrations and blocked users
 
@@ -128,8 +128,8 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 ```
 ┌─────────────────┐       /api proxy       ┌─────────────────┐       ┌──────────────┐
 │   React SPA     │ ───────────────────►   │   FastAPI       │ ────► │  PostgreSQL  │
-│   (Vite :5173)  │ ◄─────────────────     │   (Uvicorn      │ ◄──── │  (Neon)      │
-│                 │      JSON responses     │    :8000)       │       │              │
+│   (Vite :5175)  │ ◄─────────────────     │   (Uvicorn      │ ◄──── │  (Neon)      │
+│                 │      JSON responses     │    :8001)       │       │              │
 └─────────────────┘                         └─────────────────┘       └──────────────┘
                                                     │
                                              ┌──────┴──────┐
@@ -217,7 +217,7 @@ cp .env.example .env
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`.
+The API will be available at `http://localhost:8001`.
 
 ### Frontend Setup
 
@@ -227,7 +227,7 @@ npm install
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+The app will be available at `http://localhost:5175`.
 
 ---
 

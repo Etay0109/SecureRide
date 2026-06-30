@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
     id_number: str
     id_card_image: str
 
@@ -41,7 +41,6 @@ class TokenResponse(BaseModel):
 class VerifyRequest(BaseModel):
     frame_number: str
     vehicle_type: str
-    id_number: str
     brand: str | None = None
     model: str | None = None
     color: str | None = None
@@ -54,7 +53,7 @@ class RejectRegistrationRequest(BaseModel):
 
 class ResubmitRegistrationRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
     first_name: str | None = None
     last_name: str | None = None
     id_number: str | None = None
@@ -68,7 +67,7 @@ class UpdateEmailRequest(BaseModel):
 
 class UpdatePasswordRequest(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(min_length=8)
 
 
 class VehicleResponse(BaseModel):
@@ -90,7 +89,7 @@ class CreateListingRequest(BaseModel):
     frame_number: str
     condition: str
     ownership_duration: str
-    price: float
+    price: float = Field(gt=0, le=1_000_000)
     city: str | None = None
     address: str | None = None
     description: str | None = None
@@ -120,7 +119,7 @@ class ListingResponse(BaseModel):
 class UpdateListingRequest(BaseModel):
     condition: str | None = None
     ownership_duration: str | None = None
-    price: float | None = None
+    price: float | None = Field(default=None, gt=0, le=1_000_000)
     city: str | None = None
     address: str | None = None
     description: str | None = None

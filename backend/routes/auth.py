@@ -27,7 +27,9 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -189,26 +191,18 @@ async def require_admin(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_active_user),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return current_user
 
 
 @router.put("/email", response_model=UserResponse)
 async def update_email(
     body: UpdateEmailRequest,
-    user_id: str = Depends(get_current_user_id),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = current_user
 
     if not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Incorrect password")
@@ -226,16 +220,19 @@ async def update_email(
 @router.put("/password")
 async def update_password(
     body: UpdatePasswordRequest,
-    user_id: str = Depends(get_current_user_id),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = current_user
 
     if not verify_password(body.current_password, user.password):
         raise HTTPException(status_code=401, detail="Incorrect current password")
+
+    if verify_password(body.new_password, user.password):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from the current password",
+        )
 
     user.password = hash_password(body.new_password)
     await db.commit()

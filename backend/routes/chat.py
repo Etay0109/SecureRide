@@ -10,7 +10,7 @@ from schemas import (
     StartConversationRequest, SendMessageRequest,
     MessageResponse, ConversationResponse,
 )
-from routes.auth import get_current_user
+from routes.auth import require_active_user
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ router = APIRouter()
 @router.post("/conversations")
 async def start_conversation(
     body: StartConversationRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -60,7 +60,7 @@ async def start_conversation(
 
 @router.get("/conversations")
 async def list_conversations(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -128,7 +128,7 @@ async def list_conversations(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -177,7 +177,7 @@ async def get_conversation(
 @router.get("/conversations/{conversation_id}/messages")
 async def get_messages(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -202,7 +202,7 @@ async def get_messages(
 async def send_message(
     conversation_id: str,
     body: SendMessageRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -232,7 +232,7 @@ async def send_message(
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -253,7 +253,7 @@ async def delete_conversation(
 
 @router.get("/unread")
 async def get_unread_notifications(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -333,7 +333,7 @@ async def get_unread_notifications(
 @router.put("/conversations/{conversation_id}/read")
 async def mark_conversation_read(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id

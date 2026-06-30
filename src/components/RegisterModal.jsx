@@ -60,10 +60,27 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
 
       if (!res.ok) {
         let message = "Registration failed";
+
         try {
           const data = await res.json();
-          message = data.detail || message;
-        } catch {}
+
+          if (res.status === 422 && Array.isArray(data.detail)) {
+            const error = data.detail[0];
+
+            if (error.loc?.includes("password")) {
+              message = "Password must contain at least 8 characters";
+            } else if (error.loc?.includes("email")) {
+                message = "Please enter a valid email address";
+            } else {
+                message = error.msg || "Invalid input";
+            }
+          } else if (typeof data.detail === "string") {
+            message = data.detail;
+          }
+        } catch {
+            // Ignore JSON parsing errors and keep the default message.
+        }
+
         throw new Error(message);
       }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
@@ -14,6 +14,7 @@ function getStoredUser() {
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [user, setUser] = useState(getStoredUser);
@@ -21,9 +22,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     fetch("/api/stats")
-      .then((res) => res.json())
-      .then((data) => setVehicleCount(data.vehicles_verified))
-      .catch(() => {});
+    .then((res) => res.json())
+    .then((data) => setVehicleCount(data.vehicles_verified ?? 0))
+    .catch(() => setVehicleCount(0));
   }, []);
 
   const openLogin = () => {
@@ -157,11 +158,17 @@ export default function LandingPage() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={openRegister}
+                  onClick={() => {
+                    if (user) {
+                      navigate("/buy");
+                    } else {
+                      openRegister();
+                    }
+                  }}
                   className="px-8 py-4 bg-primary text-on-primary rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-primary/30 transition-all"
                 >
                   Get Started
-                </button>
+                  </button>
               </div>
             </div>
 
@@ -342,7 +349,10 @@ export default function LandingPage() {
               >
                 Create Your Account
               </button>
-              <button className="px-10 py-5 bg-white text-primary border border-primary/20 rounded-xl font-bold text-xl hover:bg-primary/5 transition-all">
+              <button
+                onClick={() => navigate("/about")}
+                className="px-10 py-5 bg-white text-primary border border-primary/20 rounded-xl font-bold text-xl hover:bg-primary/5 transition-all"
+              >
                 Learn More
               </button>
             </div>

@@ -388,22 +388,6 @@ export default function LoginModal({ onClose, onSwitchToRegister, onLoginSuccess
             />
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-slate-300 text-primary focus:ring-primary/40"
-              />
-              <span className="text-on-surface-variant">Remember me</span>
-            </label>
-            <a
-              href="#"
-              className="text-primary font-medium hover:underline"
-            >
-              Forgot password?
-            </a>
-          </div>
-
           <button
             type="submit"
             disabled={loading}

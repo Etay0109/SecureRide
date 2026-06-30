@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from models import Vehicle, User
@@ -75,14 +76,23 @@ async def verify_ownership(
     vehicle = Vehicle(
         frame_number=body.frame_number,
         vehicle_type=body.vehicle_type,
-        id_number=body.id_number,
+        id_number=current_user.id_number,
         owner_id=current_user.id,
         brand=body.brand,
         model=body.model,
         color=body.color,
         additional_details=body.additional_details,
-    )
+)
     db.add(vehicle)
-    await db.commit()
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A vehicle with this frame number is already registered",
+        )
+
     await db.refresh(vehicle)
     return vehicle

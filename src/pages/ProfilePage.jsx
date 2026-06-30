@@ -174,8 +174,8 @@ export default function ProfilePage() {
       setPasswordError("New passwords do not match.");
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
       return;
     }
     setPasswordLoading(true);

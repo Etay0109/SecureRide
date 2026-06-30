@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
@@ -14,7 +14,7 @@ const VEHICLE_TYPES = [
   { id: "Electric Bicycle", label: "Electric Bicycle", icon: "electric_moped" },
 ];
 
-const STEPS = ["VEHICLE TYPE", "DETAILS", "IDENTITY"];
+const STEPS = ["VEHICLE TYPE", "DETAILS"];
 
 function getStoredUser() {
   try {
@@ -67,14 +67,9 @@ export default function VerifyOwnership() {
     const frameNumber = form
       .querySelector('[name="frame_number"]')
       .value.trim();
-    const idNumber = form.querySelector('[name="id_number"]').value.trim();
 
     if (!frameNumber) {
       setError("Frame number is required.");
-      return;
-    }
-    if (!idNumber) {
-      setError("ID number is required.");
       return;
     }
 
@@ -89,7 +84,6 @@ export default function VerifyOwnership() {
         body: JSON.stringify({
           frame_number: frameNumber,
           vehicle_type: selectedType,
-          id_number: idNumber,
           brand: form.querySelector('[name="brand"]').value.trim() || null,
           model: form.querySelector('[name="model"]').value.trim() || null,
           color: form.querySelector('[name="color"]').value.trim() || null,
@@ -341,61 +335,35 @@ export default function VerifyOwnership() {
 
             {/* 2. Vehicle Details */}
             <div onFocus={() => setActiveStep(1)}>
-              <SectionHeading
-                icon="directions_bike"
-                number={2}
-                title="Vehicle Details"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-                <FormField
-                  name="brand"
-                  label="Brand"
-                  placeholder="e.g. Specialized, Xiaomi"
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-outline-variant/10 mb-10">
+                <SectionHeading
+                  icon="directions_bike"
+                  number={2}
+                  title="Vehicle Details"
                 />
-                <FormField
-                  name="model"
-                  label="Model"
-                  placeholder="e.g. Turbo Vado 4.0"
-                />
-                <FormField
-                  name="color"
-                  label="Color"
-                  placeholder="e.g. Matte Graphite"
-                />
-                <FormField
-                  name="frame_number"
-                  label="Frame number"
-                  placeholder="Enter serial or frame number"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* 3. Personal Identification */}
-            <div onFocus={() => setActiveStep(2)}>
-              <SectionHeading
-                icon="badge"
-                number={3}
-                title="Personal Identification"
-              />
-              <div className="mb-4">
-                <FormField
-                  name="id_number"
-                  label="ID number"
-                  placeholder="Passport or Driver's License #"
-                  fullWidth
-                  required
-                />
-              </div>
-              <div className="mb-10">
-                <label className="block text-sm font-semibold text-on-surface mb-2">
-                  Photo of ID
-                </label>
-                <UploadArea
-                  icon="cloud_upload"
-                  title="Upload a clear photo of your ID"
-                  subtitle="PNG, JPG up to 10MB"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    name="brand"
+                    label="Brand"
+                    placeholder="e.g. Specialized, Xiaomi"
+                  />
+                  <FormField
+                    name="model"
+                    label="Model"
+                    placeholder="e.g. Turbo Vado 4.0"
+                  />
+                  <FormField
+                    name="color"
+                    label="Color"
+                    placeholder="e.g. Matte Graphite"
+                  />
+                  <FormField
+                    name="frame_number"
+                    label="Frame number"
+                    placeholder="Enter serial or frame number"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -491,101 +459,6 @@ function FormField({ name, label, placeholder, fullWidth, required }) {
         name={name}
         placeholder={placeholder}
         className="w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-      />
-    </div>
-  );
-}
-
-function UploadArea({ icon, title, subtitle, compact }) {
-  const [preview, setPreview] = useState(null);
-  const [fileName, setFileName] = useState("");
-  const inputRef = useRef(null);
-
-  const handleFile = (file) => {
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target.result);
-    reader.readAsDataURL(file);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) handleFile(file);
-  };
-
-  const remove = (e) => {
-    e.stopPropagation();
-    setPreview(null);
-    setFileName("");
-    if (inputRef.current) inputRef.current.value = "";
-  };
-
-  if (preview) {
-    return (
-      <div className="relative rounded-xl overflow-hidden border border-outline-variant/30 group">
-        <img
-          src={preview}
-          alt={fileName}
-          className={`w-full object-cover ${compact ? "h-40" : "h-48"}`}
-        />
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="p-2 bg-white rounded-full shadow-lg hover:scale-110 transition-transform"
-          >
-            <span className="material-symbols-outlined text-primary text-xl">
-              edit
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={remove}
-            className="p-2 bg-white rounded-full shadow-lg hover:scale-110 transition-transform"
-          >
-            <span className="material-symbols-outlined text-red-500 text-xl">
-              delete
-            </span>
-          </button>
-        </div>
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
-          <p className="text-white text-xs truncate">{fileName}</p>
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handleFile(e.target.files[0])}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={() => inputRef.current?.click()}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
-      className={`border-2 border-dashed border-outline-variant/30 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/40 hover:bg-primary/[0.02] transition-all ${
-        compact ? "py-8 px-4" : "py-10 px-6"
-      }`}
-    >
-      <span className="material-symbols-outlined text-primary/60 text-4xl mb-2">
-        {icon}
-      </span>
-      <p className="text-sm font-medium text-on-surface-variant">{title}</p>
-      {subtitle && (
-        <p className="text-xs text-on-surface-variant/70 mt-1">{subtitle}</p>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => handleFile(e.target.files[0])}
       />
     </div>
   );

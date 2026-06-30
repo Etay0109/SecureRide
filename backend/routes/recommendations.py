@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models import UserInteraction, Listing, Vehicle, User
 from schemas import TrackInteractionRequest, RecommendedListingResponse
-from routes.auth import get_current_user
+from routes.auth import require_active_user
 
 router = APIRouter()
 
@@ -125,7 +125,7 @@ def _listing_to_recommended(listing, vehicle, seller, score: float) -> Recommend
 
 @router.delete("/reset")
 async def reset_interactions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     await db.execute(
@@ -138,7 +138,7 @@ async def reset_interactions(
 @router.post("/track", status_code=201)
 async def track_interaction(
     body: TrackInteractionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     if body.action_type not in ACTION_WEIGHTS:
@@ -156,7 +156,7 @@ async def track_interaction(
 
 @router.get("/")
 async def get_recommendations(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
     limit: int = Query(default=6, ge=1, le=20),
 ):

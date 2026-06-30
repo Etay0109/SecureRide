@@ -22,7 +22,7 @@ class User(Base):
     blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     blocked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     registration_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="pending", server_default="approved"
+        String(20), nullable=False, default="pending", server_default="pending"
     )
     id_card_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -37,7 +37,7 @@ class Vehicle(Base):
     vehicle_type: Mapped[str] = mapped_column(String(50), nullable=False)
     id_number: Mapped[str] = mapped_column(String(100), nullable=False)
     owner_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -56,10 +56,10 @@ class Listing(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     frame_number: Mapped[str] = mapped_column(
-        String(100), ForeignKey("vehicles.frame_number"), nullable=False
+        String(100), ForeignKey("vehicles.frame_number"), nullable=False, index=True
     )
     seller_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     condition: Mapped[str] = mapped_column(String(20), nullable=False)
     ownership_duration: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -80,16 +80,16 @@ class Trade(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     listing_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True
+        String(36), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True, index=True
     )
     buyer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     seller_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     frame_number: Mapped[str] = mapped_column(
-        String(100), ForeignKey("vehicles.frame_number"), nullable=False
+        String(100), ForeignKey("vehicles.frame_number"), nullable=False, index=True
     )
     price: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(
@@ -112,13 +112,13 @@ class Conversation(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     listing_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True
+        String(36), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True, index=True
     )
     buyer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     seller_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     is_admin_chat: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     buyer_last_read_at: Mapped[datetime | None] = mapped_column(
@@ -139,10 +139,10 @@ class UserInteraction(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     listing_id: Mapped[str] = mapped_column(
-        String(36), nullable=False
+        String(36), nullable=False, index=True
     )
     action_type: Mapped[str] = mapped_column(String(20), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -157,10 +157,10 @@ class Message(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     conversation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("conversations.id"), nullable=False
+        String(36), ForeignKey("conversations.id"), nullable=False, index=True
     )
     sender_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False
+        String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

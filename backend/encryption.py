@@ -8,8 +8,10 @@ _KEY_ENV = "ID_CARD_ENCRYPTION_KEY"
 def _get_key() -> bytes:
     key = os.getenv(_KEY_ENV)
     if not key:
-        key = Fernet.generate_key().decode()
-        os.environ[_KEY_ENV] = key
+        raise RuntimeError(
+            f"{_KEY_ENV} is not configured. "
+            "Set it in backend/.env to keep encrypted ID card images readable."
+        )
     return key.encode()
 
 
