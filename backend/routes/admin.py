@@ -10,7 +10,15 @@ from routes.auth import require_admin
 
 router = APIRouter()
 
+# Retrieve a user by ID or raise a 404 error if not found.
+async def get_user_or_404(db: AsyncSession, user_id: str) -> User:
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
+# Return all currently blocked users.
 @router.get("/blocked-users")
 async def list_blocked_users(
     admin: User = Depends(require_admin),
@@ -33,34 +41,28 @@ async def list_blocked_users(
     ]
 
 
+# Unblock a user account.
 @router.put("/users/{target_user_id}/unblock")
 async def unblock_user(
     target_user_id: str,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == target_user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+    user = await get_user_or_404(db, target_user_id)
     user.blocked = False
     user.blocked_reason = None
     await db.commit()
     return {"status": "unblocked", "user_id": user.id}
 
 
+# Block a user account.
 @router.put("/users/{target_user_id}/block")
 async def block_user(
     target_user_id: str,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == target_user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+    user = await get_user_or_404(db, target_user_id)
     user.blocked = True
     if not user.blocked_reason:
         user.blocked_reason = "Blocked by admin"
@@ -68,6 +70,7 @@ async def block_user(
     return {"status": "blocked", "user_id": user.id}
 
 
+# Create or return an existing admin-to-user chat.
 @router.post("/chat/{target_user_id}")
 async def start_admin_chat(
     target_user_id: str,
@@ -104,6 +107,7 @@ async def start_admin_chat(
     return {"conversation_id": conv.id}
 
 
+# Return all pending registration requests.
 @router.get("/pending-registrations")
 async def list_pending_registrations(
     admin: User = Depends(require_admin),
@@ -129,6 +133,7 @@ async def list_pending_registrations(
     ]
 
 
+# Return the number of pending registration requests.
 @router.get("/pending-count")
 async def pending_registration_count(
     admin: User = Depends(require_admin),
@@ -140,16 +145,14 @@ async def pending_registration_count(
     return {"count": result.scalar()}
 
 
+# Approve a pending user registration.
 @router.put("/registrations/{user_id}/approve")
 async def approve_registration(
     user_id: str,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_user_or_404(db, user_id)
     if user.registration_status != "pending":
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 
@@ -159,6 +162,7 @@ async def approve_registration(
     return {"status": "approved", "user_id": user.id}
 
 
+# Permanently reject and block a pending registration.
 @router.put("/registrations/{user_id}/permanently-block")
 async def permanently_block_registration(
     user_id: str,
@@ -166,10 +170,7 @@ async def permanently_block_registration(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_user_or_404(db, user_id)
     if user.registration_status != "pending":
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 
@@ -181,6 +182,7 @@ async def permanently_block_registration(
     return {"status": "rejected", "user_id": user.id}
 
 
+# Request changes before approving a registration.
 @router.put("/registrations/{user_id}/request-changes")
 async def request_changes_registration(
     user_id: str,
@@ -188,10 +190,7 @@ async def request_changes_registration(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_user_or_404(db, user_id)
     if user.registration_status != "pending":
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 

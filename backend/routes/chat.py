@@ -15,6 +15,7 @@ from routes.auth import require_active_user
 router = APIRouter()
 
 
+# Create a new conversation or return an existing one for a listing.
 @router.post("/conversations")
 async def start_conversation(
     body: StartConversationRequest,
@@ -58,6 +59,7 @@ async def start_conversation(
     return {"id": conv.id}
 
 
+# Return all conversations for the authenticated user.
 @router.get("/conversations")
 async def list_conversations(
     current_user: User = Depends(require_active_user),
@@ -125,6 +127,7 @@ async def list_conversations(
     return responses
 
 
+# Return details for a specific conversation.
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
@@ -174,6 +177,7 @@ async def get_conversation(
     }
 
 
+# Return all messages for a conversation.
 @router.get("/conversations/{conversation_id}/messages")
 async def get_messages(
     conversation_id: str,
@@ -198,6 +202,7 @@ async def get_messages(
     return [MessageResponse.model_validate(m) for m in result.scalars().all()]
 
 
+# Send a new message in a conversation.
 @router.post("/conversations/{conversation_id}/messages", status_code=201)
 async def send_message(
     conversation_id: str,
@@ -229,6 +234,7 @@ async def send_message(
     return MessageResponse.model_validate(msg)
 
 
+# Delete a conversation and all of its messages.
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
@@ -251,6 +257,7 @@ async def delete_conversation(
     return {"status": "deleted"}
 
 
+# Return unread message notifications for the authenticated user.
 @router.get("/unread")
 async def get_unread_notifications(
     current_user: User = Depends(require_active_user),
@@ -330,6 +337,7 @@ async def get_unread_notifications(
     return {"total_unread": total_unread, "notifications": notifications}
 
 
+# Mark a conversation as read for the authenticated user.
 @router.put("/conversations/{conversation_id}/read")
 async def mark_conversation_read(
     conversation_id: str,

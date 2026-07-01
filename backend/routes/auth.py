@@ -19,11 +19,12 @@ from schemas import (
 router = APIRouter()
 security = HTTPBearer()
 
-
+# Hash a plain-text password using bcrypt.
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
+# Verify a plain-text password against its bcrypt hash.
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
@@ -34,6 +35,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
 
+# Generate a signed JWT access token with an expiration time.
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -41,6 +43,19 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+# Decode and validate a JWT token, returning the authenticated user ID.
+def _decode_token(credentials: HTTPAuthorizationCredentials) -> str:
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+# Register a new user and submit the account for admin approval.
 @router.post("/register", status_code=status.HTTP_202_ACCEPTED)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if not body.id_number or not body.id_number.strip():
@@ -80,6 +95,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     }
 
 
+# Authenticate a user and return a JWT access token.
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
@@ -117,33 +133,20 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         user=UserResponse.model_validate(user),
     )
 
-
+# Extract the authenticated user's ID from the JWT token.
 async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return user_id
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return _decode_token(credentials)
 
 
+# Retrieve the authenticated user without checking account status.
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Return the User object without checking blocked status."""
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
+    user_id = _decode_token(credentials)
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -151,18 +154,13 @@ async def get_current_user(
     return user
 
 
+# Ensure the authenticated user is approved and not blocked.
 async def require_active_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Return the full User object; raises 403 if the account is blocked."""
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user_id = _decode_token(credentials)
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -181,6 +179,7 @@ async def require_active_user(
     return user
 
 
+# Ensure the authenticated user has administrator privileges.
 async def require_admin(
     user: User = Depends(require_active_user),
 ) -> User:
@@ -189,6 +188,7 @@ async def require_admin(
     return user
 
 
+# Return the authenticated user's profile information.
 @router.get("/me", response_model=UserResponse)
 async def get_me(
     current_user: User = Depends(require_active_user),
@@ -196,6 +196,7 @@ async def get_me(
     return current_user
 
 
+# Update the authenticated user's email address.
 @router.put("/email", response_model=UserResponse)
 async def update_email(
     body: UpdateEmailRequest,
@@ -217,6 +218,7 @@ async def update_email(
     return user
 
 
+# Update the authenticated user's password.
 @router.put("/password")
 async def update_password(
     body: UpdatePasswordRequest,
@@ -239,6 +241,7 @@ async def update_password(
     return {"message": "Password updated"}
 
 
+# Resubmit a registration after requested changes.
 @router.post("/resubmit", status_code=status.HTTP_202_ACCEPTED)
 async def resubmit_registration(
     body: ResubmitRegistrationRequest,

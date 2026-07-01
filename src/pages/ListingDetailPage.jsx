@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
+import { getStoredUser } from "../utils/auth";
 
 const VEHICLE_ICONS = {
   "Electric Scooter": "electric_scooter",
@@ -10,14 +11,6 @@ const VEHICLE_ICONS = {
   "Electric Bicycle": "electric_moped",
 };
 
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 export default function ListingDetailPage() {
   const { id } = useParams();

@@ -11,6 +11,7 @@ from routes.auth import require_active_user
 router = APIRouter()
 
 
+# Return all vehicles owned by the authenticated user.
 @router.get("/my-vehicles", response_model=list[VehicleResponse])
 async def my_vehicles(
     current_user: User = Depends(require_active_user),
@@ -22,6 +23,7 @@ async def my_vehicles(
     return result.scalars().all()
 
 
+# Toggle the stolen status of a vehicle owned by the authenticated user.
 @router.put("/{frame_number}/toggle-stolen", response_model=VehicleResponse)
 async def toggle_stolen(
     frame_number: str,
@@ -44,6 +46,7 @@ async def toggle_stolen(
     return vehicle
 
 
+# Register a new vehicle and link it to the authenticated user.
 @router.post("/", response_model=VehicleResponse, status_code=status.HTTP_201_CREATED)
 async def verify_ownership(
     body: VerifyRequest,
@@ -82,7 +85,8 @@ async def verify_ownership(
         model=body.model,
         color=body.color,
         additional_details=body.additional_details,
-)
+    )
+    
     db.add(vehicle)
 
     try:

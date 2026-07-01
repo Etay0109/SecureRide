@@ -11,7 +11,7 @@ from routes.auth import require_active_user
 
 router = APIRouter()
 
-
+# Convert a Trade database object into an API response.
 async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
     vehicle = (await db.execute(
         select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
@@ -42,6 +42,7 @@ async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
     )
 
 
+# Create a new trade request for a listing.
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_trade(
     body: CreateTradeRequest,
@@ -88,6 +89,7 @@ async def create_trade(
     return await trade_to_response(trade, db)
 
 
+# Return all trades related to the authenticated user.
 @router.get("/my")
 async def my_trades(
     current_user: User = Depends(require_active_user),
@@ -103,6 +105,7 @@ async def my_trades(
     return [await trade_to_response(t, db) for t in trades]
 
 
+# Return active trades for a specific listing.
 @router.get("/listing/{listing_id}")
 async def trades_for_listing(
     listing_id: str,
@@ -122,6 +125,7 @@ async def trades_for_listing(
     return [await trade_to_response(t, db) for t in trades]
 
 
+# Allow the seller to accept a pending trade request.
 @router.put("/{trade_id}/accept")
 async def accept_trade(
     trade_id: str,
@@ -143,6 +147,7 @@ async def accept_trade(
     return await trade_to_response(trade, db)
 
 
+# Allow the seller to reject a pending trade request.
 @router.put("/{trade_id}/reject")
 async def reject_trade(
     trade_id: str,
@@ -164,6 +169,7 @@ async def reject_trade(
     return await trade_to_response(trade, db)
 
 
+# Allow the buyer to cancel an active trade request.
 @router.put("/{trade_id}/cancel")
 async def cancel_trade(
     trade_id: str,
@@ -185,6 +191,7 @@ async def cancel_trade(
     return await trade_to_response(trade, db)
 
 
+# Allow either participant to abort an accepted trade.
 @router.put("/{trade_id}/abort")
 async def abort_trade(
     trade_id: str,
@@ -209,6 +216,7 @@ async def abort_trade(
     return await trade_to_response(trade, db)
 
 
+# Allow the seller to confirm that the vehicle was transferred.
 @router.put("/{trade_id}/confirm-transfer")
 async def confirm_transfer(
     trade_id: str,
@@ -235,6 +243,7 @@ async def confirm_transfer(
     return await trade_to_response(trade, db)
 
 
+# Allow the buyer to confirm that the vehicle was received.
 @router.put("/{trade_id}/confirm-receipt")
 async def confirm_receipt(
     trade_id: str,
@@ -261,6 +270,7 @@ async def confirm_receipt(
     return await trade_to_response(trade, db)
 
 
+# Complete the trade, transfer ownership, and clean up the listing.
 async def _complete_trade(trade: Trade, db: AsyncSession):
     """Transfer vehicle ownership, remove listing, mark trade completed."""
     listing_id = trade.listing_id

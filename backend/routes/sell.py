@@ -12,6 +12,7 @@ from routes.auth import require_active_user
 router = APIRouter()
 
 
+# Convert a listing database object into an API response.
 def listing_to_response(listing: Listing, vehicle: Vehicle, seller: User | None = None) -> ListingResponse:
     photos = []
     if listing.photos:
@@ -41,6 +42,7 @@ def listing_to_response(listing: Listing, vehicle: Vehicle, seller: User | None 
     )
 
 
+# Create a new listing for one of the user's verified vehicles.
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_listing(
     body: CreateListingRequest,
@@ -84,6 +86,7 @@ async def create_listing(
     return listing_to_response(listing, vehicle)
 
 
+# Return the user's verified vehicles that are available for listing.
 @router.get("/available-vehicles")
 async def available_vehicles(
     current_user: User = Depends(require_active_user),
@@ -101,6 +104,7 @@ async def available_vehicles(
     return result.scalars().all()
 
 
+# Return all active marketplace listings.
 @router.get("/listings")
 async def all_listings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -114,6 +118,7 @@ async def all_listings(db: AsyncSession = Depends(get_db)):
     return [listing_to_response(listing, vehicle, seller) for listing, vehicle, seller in rows]
 
 
+# Return details for a specific listing.
 @router.get("/listings/{listing_id}")
 async def get_listing(listing_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -129,6 +134,7 @@ async def get_listing(listing_id: str, db: AsyncSession = Depends(get_db)):
     return listing_to_response(listing, vehicle, seller)
 
 
+# Return all listings created by the authenticated user.
 @router.get("/my-listings")
 async def my_listings(
     current_user: User = Depends(require_active_user),
@@ -146,6 +152,7 @@ async def my_listings(
     return [listing_to_response(listing, vehicle, seller) for listing, vehicle, seller in rows]
 
 
+# Update an existing listing owned by the authenticated user.
 @router.put("/listings/{listing_id}")
 async def update_listing(
     listing_id: str,
@@ -186,6 +193,7 @@ async def update_listing(
     return listing_to_response(listing, vehicle, seller)
 
 
+# Delete a listing owned by the authenticated user.
 @router.delete("/listings/{listing_id}")
 async def delete_listing(
     listing_id: str,

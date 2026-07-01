@@ -23,12 +23,13 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 class Base(DeclarativeBase):
     pass
 
-
+# Provide a database session for each request.
 async def get_db():
     async with async_session() as session:
         yield session
 
 
+# Create database tables and run pending migrations.
 async def create_tables():
     async with engine.begin() as conn:
         from models import User, Vehicle, Listing, Conversation, Message, Trade, UserInteraction  # noqa: F401

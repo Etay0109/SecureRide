@@ -31,7 +31,7 @@ FEATURE_WEIGHTS = {
     "condition": 2.0,
 }
 
-
+# Return the index of the price range that matches the listing price.
 def _price_band_index(price: float) -> int:
     for i, (low, high) in enumerate(PRICE_BANDS):
         if low <= price < high:
@@ -39,6 +39,7 @@ def _price_band_index(price: float) -> int:
     return len(PRICE_BANDS) - 1
 
 
+# Convert a listing into a weighted numerical feature vector.
 def _build_feature_vector(listing_row, city_index: dict[str, int], num_cities: int) -> list[float]:
     """Encode a listing into a weighted numerical feature vector.
 
@@ -68,6 +69,7 @@ def _build_feature_vector(listing_row, city_index: dict[str, int], num_cities: i
     return type_vec + cond_vec + price_vec + city_vec
 
 
+# Compare two feature vectors and return how similar they are.
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b))
     mag_a = math.sqrt(sum(x * x for x in a))
@@ -77,6 +79,7 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (mag_a * mag_b)
 
 
+# Compute the weighted average vector that represents user preferences.
 def _weighted_average_vector(vectors_with_weights: list[tuple[list[float], float]]) -> list[float]:
     """Compute a weighted average of feature vectors."""
     if not vectors_with_weights:
@@ -93,6 +96,7 @@ def _weighted_average_vector(vectors_with_weights: list[tuple[list[float], float
     return result
 
 
+# Convert a listing into a recommended listing API response.
 def _listing_to_recommended(listing, vehicle, seller, score: float) -> RecommendedListingResponse:
     photos = []
     if listing.photos:
@@ -123,6 +127,7 @@ def _listing_to_recommended(listing, vehicle, seller, score: float) -> Recommend
     )
 
 
+# Delete all recommendation interactions for the authenticated user.
 @router.delete("/reset")
 async def reset_interactions(
     current_user: User = Depends(require_active_user),
@@ -135,6 +140,7 @@ async def reset_interactions(
     return {"status": "cleared"}
 
 
+# Track a user interaction with a listing.
 @router.post("/track", status_code=201)
 async def track_interaction(
     body: TrackInteractionRequest,
@@ -154,6 +160,7 @@ async def track_interaction(
     return {"status": "tracked"}
 
 
+# Generate personalized listing recommendations for the authenticated user.
 @router.get("/")
 async def get_recommendations(
     current_user: User = Depends(require_active_user),

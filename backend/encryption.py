@@ -5,6 +5,7 @@ from cryptography.fernet import Fernet
 
 _KEY_ENV = "ID_CARD_ENCRYPTION_KEY"
 
+# Load the encryption key from the environment variables.
 def _get_key() -> bytes:
     key = os.getenv(_KEY_ENV)
     if not key:
@@ -17,6 +18,7 @@ def _get_key() -> bytes:
 
 _fernet = None
 
+# Create or return the shared Fernet encryption instance.
 def _get_fernet() -> Fernet:
     global _fernet
     if _fernet is None:
@@ -24,6 +26,7 @@ def _get_fernet() -> Fernet:
     return _fernet
 
 
+# Encrypt an ID card image before storing it in the database.
 def encrypt_image(plain_text: str) -> str:
     """Encrypt a base64 data-URL string and return a URL-safe base64 cipher text."""
     f = _get_fernet()
@@ -32,6 +35,7 @@ def encrypt_image(plain_text: str) -> str:
     ).decode("ascii")
 
 
+# Decrypt an ID card image for authorized viewing.
 def decrypt_image(cipher_text: str) -> str:
     """Decrypt back to the original base64 data-URL string."""
     f = _get_fernet()

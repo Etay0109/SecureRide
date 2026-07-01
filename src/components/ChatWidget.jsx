@@ -1,13 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+import { getStoredUser } from "../utils/auth";
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
