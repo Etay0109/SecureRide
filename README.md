@@ -1,9 +1,8 @@
 # 🛴 SecureRide
 
-**A peer-to-peer marketplace for verified micromobility vehicles.**
+**A secure peer-to-peer marketplace for verified micromobility vehicles.**
 
 SecureRide is a full-stack web application that enables users to safely buy, sell, and trade verified electric scooters, bicycles, and electric bicycles. Every vehicle is registered with its frame number and linked to a verified owner - reducing fraud, preventing stolen vehicle sales, and building trust between buyers and sellers.
-
 
 ---
 
@@ -12,10 +11,12 @@ SecureRide is a full-stack web application that enables users to safely buy, sel
 - [Project Overview](#-project-overview)
 - [Features](#-features)
 - [Technologies Used](#-technologies-used)
+- [Architecture](#-architecture)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
 - [Environment Variables](#-environment-variables)
-- [License](#-license)
+- [API Routes](#-api-routes)
+- [Screenshots](#-screenshots)
 - [Authors](#-authors)
 
 ---
@@ -23,6 +24,8 @@ SecureRide is a full-stack web application that enables users to safely buy, sel
 ## 🔍 Project Overview
 
 The micromobility market is growing rapidly, but buying and selling used electric scooters and bikes online comes with risks - stolen vehicles, fraudulent sellers, and no way to verify ownership. **SecureRide** solves this by combining a modern marketplace with a built-in ownership verification system.
+
+The project was developed as a final-year Computer Science capstone project with a strong emphasis on secure ownership verification, fraud prevention, and user trust.
 
 ### How It Works
 
@@ -64,7 +67,7 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 
 - Register vehicles by **frame number** (unique identifier)
 - Link vehicles to verified user identities
-- **Stolen vehicle registry** — owners can flag vehicles as stolen
+- **Stolen vehicle registry** - owners can flag vehicles as stolen
 - Anti-fraud protection: registering a stolen frame number **automatically blocks** the user
 
 ### 🛒 Marketplace
@@ -79,11 +82,11 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 - Structured trade flow: buyer requests → seller accepts/rejects → mutual confirmation
 - **Dual confirmation** — both seller and buyer must confirm the trade happened
 - Automatic **ownership transfer** upon trade completion
-- Option to **abort** a trade if it didn't happen
+- Option to **abort** a trade if it did not go through
 
-### 💬 Real-Time Chat
+### 💬 In-App Chat
 
-- In-app messaging between buyers and sellers per listing
+- Messaging between buyers and sellers per listing
 - **Admin support chat** for moderation and user assistance
 - Unread message notifications with read receipts
 - Global chat widget accessible from any page
@@ -106,8 +109,9 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 | **React 19** | UI framework |
 | **Vite 8** | Build tool and dev server |
 | **React Router 7** | Client-side routing |
-| **Tailwind CSS** | Utility-first styling |
-| **Material Symbols** | Icon system |
+| **Tailwind CSS** (via CDN) | Utility-first styling |
+| **Material Symbols** (via CDN) | Icon system |
+| **Inter** (via Google Fonts) | UI font |
 | **JavaScript (JSX)** | Language |
 
 ### Backend
@@ -123,21 +127,11 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 | **python-jose** | JWT token generation and verification |
 | **cryptography (Fernet)** | ID card image encryption at rest |
 
-### Architecture
+---
 
-```
-┌─────────────────┐       /api proxy       ┌─────────────────┐       ┌──────────────┐
-│   React SPA     │ ───────────────────►   │   FastAPI       │ ────► │  PostgreSQL  │
-│   (Vite :5175)  │ ◄─────────────────     │   (Uvicorn      │ ◄──── │  (Neon)      │
-│                 │      JSON responses     │    :8001)       │       │              │
-└─────────────────┘                         └─────────────────┘       └──────────────┘
-                                                    │
-                                             ┌──────┴──────┐
-                                             │  JWT Auth   │
-                                             │  Fernet Enc │
-                                             └─────────────┘
-```
+## 🏗️ System Architecture
 
+![Architecture Diagram](docs/images/architecture-diagram.png)
 ---
 
 ## 📁 Project Structure
@@ -158,19 +152,22 @@ secureRide/
 │   │   ├── ProfilePage.jsx       # User account & vehicles
 │   │   ├── AdminPage.jsx         # Admin dashboard
 │   │   └── AboutPage.jsx         # About the project
-│   └── components/
-│       ├── LoginModal.jsx        # Login with resubmission flow
-│       ├── RegisterModal.jsx     # Registration with ID upload
-│       ├── ChatWidget.jsx        # Global chat overlay
-│       ├── NotificationBell.jsx  # Unread message alerts
-│       └── BlockedBanner.jsx     # Blocked account notice
+│   ├── components/
+│   │   ├── LoginModal.jsx        # Login with resubmission flow
+│   │   ├── RegisterModal.jsx     # Registration with ID upload
+│   │   ├── ChatWidget.jsx        # Global chat overlay
+│   │   ├── NotificationBell.jsx  # Unread message alerts
+│   │   └── BlockedBanner.jsx     # Blocked account notice
+│   └── utils/
+│       └── auth.js               # Auth helper utilities
 │
 ├── backend/                      # FastAPI Backend
 │   ├── main.py                   # App setup, CORS, routers
-│   ├── database.py               # DB engine, sessions, migrations
+│   ├── database.py               # DB engine, sessions, table creation
 │   ├── models.py                 # SQLAlchemy ORM models
 │   ├── schemas.py                # Pydantic request/response schemas
 │   ├── encryption.py             # Fernet encrypt/decrypt utilities
+│   ├── migrations.py             # Schema migration helpers
 │   ├── requirements.txt          # Python dependencies
 │   └── routes/
 │       ├── auth.py               # Register, login, profile updates
@@ -179,9 +176,9 @@ secureRide/
 │       ├── trade.py              # Trade lifecycle management
 │       ├── chat.py               # Conversations & messages
 │       ├── admin.py              # Admin moderation endpoints
-│       └── recommendations.py    # Matching algorithm engine
+│       └── recommendations.py   # Matching algorithm engine
 │
-├── index.html                    # HTML shell + Tailwind config
+├── index.html                    # HTML shell + Tailwind CDN config
 ├── package.json                  # Frontend dependencies
 ├── vite.config.js                # Vite config with API proxy
 └── eslint.config.js              # ESLint configuration
@@ -202,7 +199,7 @@ secureRide/
 ```bash
 cd backend
 
-# Create and activate a virtual environment (recommended)
+# Create and activate a virtual environment
 python3 -m venv venv
 source venv/bin/activate        # macOS/Linux
 # venv\Scripts\activate         # Windows
@@ -214,10 +211,12 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # Start the backend server
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8001
 ```
 
 The API will be available at `http://localhost:8001`.
+
+> **Database:** Tables are created automatically on first startup — no manual migration step is needed.
 
 ### Frontend Setup
 
@@ -227,32 +226,97 @@ npm install
 npm run dev
 ```
 
-The app will be available at `http://localhost:5175`.
+The app will be available at `http://localhost:5173` (Vite may auto-increment the port if 5173 is already in use).
 
 ---
 
 ## 🔑 Environment Variables
 
-Create a `.env` file inside the `backend/` directory:
+Create a `.env` file inside the `backend/` directory (or copy from `.env.example`):
 
 | Variable | Description | Required |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string (asyncpg format) | Yes |
 | `SECRET_KEY` | Secret key for JWT token signing | Yes |
-| `ID_CARD_ENCRYPTION_KEY` | Fernet key for ID card image encryption | No (auto-generated in dev) |
+| `ID_CARD_ENCRYPTION_KEY` | Fernet key for ID card image encryption | Yes |
 
-Example:
+Example `.env`:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://user:password@host/dbname?sslmode=require
 SECRET_KEY=your-random-secret-key
+ID_CARD_ENCRYPTION_KEY=your-fernet-key-here
+```
+
+To generate a valid `ID_CARD_ENCRYPTION_KEY`, run:
+
+```bash
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
 ---
 
-## 📄 License
+## 🔌 API Routes
 
-This project was developed as a final year academic project and is intended for educational purposes.
+All routes are prefixed with `/api` and served by the FastAPI backend.
+
+| Prefix | Description |
+|---|---|
+| `/api/auth` | Registration, login, profile management |
+| `/api/verify` | Vehicle registration and stolen flag |
+| `/api/sell` | Listing CRUD and available vehicles |
+| `/api/trades` | Trade lifecycle (request, accept, confirm, abort) |
+| `/api/chat` | Conversations and messages |
+| `/api/admin` | Admin moderation and user management |
+| `/api/recommendations` | Personalized listing recommendations |
+| `/api/health` | Health check |
+
+Interactive API documentation is available at `http://localhost:8001/docs` (Swagger UI) when the backend is running.
+
+---
+
+
+## 📸 Screenshots
+
+The following screenshots demonstrate the main features and user flow of SecureRide.
+
+### 🏠 Landing Page
+
+The application's home page introducing SecureRide and its secure vehicle marketplace.
+
+![Landing Page](docs/images/landing-page.png)
+
+---
+
+### 🛒 Marketplace
+
+Browse verified vehicle listings with personalized recommendations, filters, and search functionality.
+
+![Marketplace](docs/images/marketplace.png)
+
+---
+
+### 📄 Listing Details
+
+Detailed listing view including vehicle information, seller details, image gallery, chat, and trade actions.
+
+![Listing Details](docs/images/listing-details.png)
+
+---
+
+### 💬 Chat System
+
+Built-in messaging system enabling secure communication between buyers, sellers, and administrators.
+
+![Chat System](docs/images/chat-system.png)
+
+---
+
+### 🛡️ Admin Dashboard
+
+Administrative dashboard for reviewing registrations, approving users, managing blocked accounts, and moderating the platform.
+
+![Admin Dashboard](docs/images/admin-dashboard.png)
 
 ---
 
