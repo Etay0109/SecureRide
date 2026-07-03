@@ -46,6 +46,13 @@ export default function LoginModal({ onClose, onSwitchToRegister, onLoginSuccess
       const data = await res.json();
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user?.blocked) {
+        window.dispatchEvent(
+          new CustomEvent("accountBlocked", {
+            detail: { reason: data.user.blocked_reason },
+          })
+        );
+      }
       onClose();
       if (onLoginSuccess) {
         onLoginSuccess(data.user);

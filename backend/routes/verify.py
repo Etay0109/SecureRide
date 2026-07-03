@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from database import get_db
-from models import Vehicle, User
+from models import Vehicle, User, Listing, Trade
 from schemas import VerifyRequest, VehicleResponse
 from routes.auth import require_active_user
 
@@ -100,3 +100,42 @@ async def verify_ownership(
 
     await db.refresh(vehicle)
     return vehicle
+
+
+@router.delete("/{frame_number}")
+async def delete_vehicle(
+    frame_number: str,
+    current_user: User = Depends(require_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Vehicle).where(
+            Vehicle.frame_number == frame_number,
+            Vehicle.owner_id == current_user.id,
+        )
+    )
+    vehicle = result.scalar_one_or_none()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    listing_result = await db.execute(
+        select(Listing).where(Listing.frame_number == frame_number).limit(1)
+    )
+    if listing_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a vehicle that has an active listing. Remove the listing first.",
+        )
+
+    trade_result = await db.execute(
+        select(Trade).where(Trade.frame_number == frame_number).limit(1)
+    )
+    if trade_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a vehicle involved in an active trade.",
+        )
+
+    await db.delete(vehicle)
+    await db.commit()
+    return {"status": "deleted"}

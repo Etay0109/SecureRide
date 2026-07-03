@@ -234,6 +234,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteVehicle = async (frameNumber) => {
+    if (!confirm("Are you sure you want to delete this vehicle? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/verify/${encodeURIComponent(frameNumber)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        let msg = "Failed to delete vehicle";
+        try {
+          const data = await res.json();
+          msg = data.detail || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+      setVehicles((prev) => prev.filter((v) => v.frame_number !== frameNumber));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleTradeAction = async (tradeId, action) => {
     try {
       const res = await fetch(`/api/trades/${tradeId}/${action}`, {
@@ -651,6 +672,13 @@ export default function ProfilePage() {
                       {v.stolen ? "check_circle" : "report"}
                     </span>
                     {v.stolen ? "Report as Found" : "Report as Stolen"}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteVehicle(v.frame_number)}
+                    className="mt-2 w-full py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                    Delete Vehicle
                   </button>
                 </div>
               ))}

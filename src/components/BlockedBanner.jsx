@@ -60,6 +60,17 @@ export default function BlockedBanner() {
 
   useEffect(() => {
     if (!blocked) return;
+    const interval = setInterval(() => {
+      if (!localStorage.getItem("token")) {
+        setBlocked(false);
+        setReason("");
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [blocked]);
+
+  useEffect(() => {
+    if (!blocked) return;
     if (location.pathname !== "/") {
       navigate("/", { replace: true });
     }
