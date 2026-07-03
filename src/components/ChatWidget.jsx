@@ -17,6 +17,7 @@ export default function ChatWidget() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   const messagesEndRef = useRef(null);
   const msgPollRef = useRef(null);
@@ -128,6 +129,7 @@ export default function ChatWidget() {
   async function handleSend(e) {
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
+    setSendError("");
     setSending(true);
     try {
       const res = await fetch(`/api/chat/conversations/${activeId}/messages`, {
@@ -138,16 +140,21 @@ export default function ChatWidget() {
         },
         body: JSON.stringify({ content: newMessage.trim() }),
       });
+      if (res.status === 403) {
+        setSendError("Your account is blocked. You cannot send messages.");
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.detail || "Failed to send");
+        setSendError(data?.detail || "Failed to send");
+        return;
       }
       const msg = await res.json();
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
       loadConversations();
-    } catch (err) {
-      alert(err.message);
+    } catch {
+      setSendError("Failed to send message. Please try again.");
     } finally {
       setSending(false);
     }
@@ -426,6 +433,12 @@ export default function ChatWidget() {
 
               {/* Input */}
               <div className="flex-shrink-0 bg-white border-t border-outline-variant/20 px-3 py-2">
+                {sendError && (
+                  <p className="text-[10px] text-red-600 font-medium mb-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">block</span>
+                    {sendError}
+                  </p>
+                )}
                 <form onSubmit={handleSend} className="flex items-end gap-2">
                   <textarea
                     value={newMessage}

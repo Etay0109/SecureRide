@@ -325,7 +325,7 @@ Administrative dashboard for reviewing registrations, approving users, managing 
 | | Name | Role |
 |---|---|---|
 | 👤 | **Ido Ben Bassat** | Frontend Development |
-| 👤 | **Etay Zerahowitz** | Backend Development |
+| 👤 | **Etay Zerachowitz** | Backend Development |
 
 ---
 

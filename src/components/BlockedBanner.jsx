@@ -4,8 +4,8 @@ import { getStoredUser } from "../utils/auth";
 
 export default function BlockedBanner() {
   const [user, setUser] = useState(getStoredUser);
-  const [blocked, setBlocked] = useState(false);
-  const [reason, setReason] = useState("");
+  const [blocked, setBlocked] = useState(() => getStoredUser()?.blocked === true);
+  const [reason, setReason] = useState(() => getStoredUser()?.blocked_reason || "");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,8 +14,12 @@ export default function BlockedBanner() {
     if (!token || !user) return;
 
     fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => {
+      .then(async (r) => {
+        if (!r.ok) {
+          // Cannot determine server state — keep whatever is in localStorage as-is.
+          return;
+        }
+        const data = await r.json();
         if (data.blocked) {
           setBlocked(true);
           setReason(data.blocked_reason || "");

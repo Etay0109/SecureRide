@@ -9,10 +9,13 @@ import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import ChatWidget from "./components/ChatWidget";
 import BlockedBanner from "./components/BlockedBanner";
+import { getStoredUser } from "./utils/auth";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   if (!token) return <Navigate to="/" replace />;
+  const user = getStoredUser();
+  if (user?.blocked) return <Navigate to="/" replace />;
   return children;
 }
 

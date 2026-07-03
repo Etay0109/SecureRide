@@ -10,7 +10,7 @@ from schemas import (
     StartConversationRequest, SendMessageRequest,
     MessageResponse, ConversationResponse,
 )
-from routes.auth import require_active_user
+from routes.auth import require_active_user, require_auth
 
 router = APIRouter()
 
@@ -60,9 +60,10 @@ async def start_conversation(
 
 
 # Return all conversations for the authenticated user.
+# Uses require_auth so blocked users can still view their existing chat history.
 @router.get("/conversations")
 async def list_conversations(
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -131,7 +132,7 @@ async def list_conversations(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -181,7 +182,7 @@ async def get_conversation(
 @router.get("/conversations/{conversation_id}/messages")
 async def get_messages(
     conversation_id: str,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -260,7 +261,7 @@ async def delete_conversation(
 # Return unread message notifications for the authenticated user.
 @router.get("/unread")
 async def get_unread_notifications(
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
@@ -341,7 +342,7 @@ async def get_unread_notifications(
 @router.put("/conversations/{conversation_id}/read")
 async def mark_conversation_read(
     conversation_id: str,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
