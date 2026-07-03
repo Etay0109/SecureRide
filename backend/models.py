@@ -103,6 +103,11 @@ class Trade(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    vehicle_frame_number_snapshot: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    vehicle_brand_snapshot: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    vehicle_model_snapshot: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    vehicle_type_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    vehicle_color_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class Conversation(Base):

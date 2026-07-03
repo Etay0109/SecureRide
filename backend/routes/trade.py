@@ -27,16 +27,17 @@ async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
         listing_id=trade.listing_id,
         buyer_id=trade.buyer_id,
         seller_id=trade.seller_id,
-        frame_number=trade.frame_number,
+        frame_number=trade.frame_number or trade.vehicle_frame_number_snapshot,
         price=trade.price,
         status=trade.status,
         seller_confirmed=trade.seller_confirmed,
         buyer_confirmed=trade.buyer_confirmed,
         created_at=trade.created_at,
         completed_at=trade.completed_at,
-        vehicle_brand=vehicle.brand if vehicle else None,
-        vehicle_model=vehicle.model if vehicle else None,
-        vehicle_type=vehicle.vehicle_type if vehicle else None,
+        vehicle_brand=(vehicle.brand if vehicle else None) or trade.vehicle_brand_snapshot,
+        vehicle_model=(vehicle.model if vehicle else None) or trade.vehicle_model_snapshot,
+        vehicle_type=(vehicle.vehicle_type if vehicle else None) or trade.vehicle_type_snapshot,
+        vehicle_color=(vehicle.color if vehicle else None) or trade.vehicle_color_snapshot,
         buyer_first_name=buyer.first_name if buyer else None,
         buyer_last_name=buyer.last_name if buyer else None,
         seller_first_name=seller.first_name if seller else None,
@@ -284,6 +285,11 @@ async def _complete_trade(trade: Trade, db: AsyncSession):
         select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
     )).scalar_one()
     vehicle.owner_id = trade.buyer_id
+    trade.vehicle_frame_number_snapshot = vehicle.frame_number
+    trade.vehicle_brand_snapshot = vehicle.brand
+    trade.vehicle_model_snapshot = vehicle.model
+    trade.vehicle_type_snapshot = vehicle.vehicle_type
+    trade.vehicle_color_snapshot = vehicle.color
 
     if listing_id:
         convs = (await db.execute(

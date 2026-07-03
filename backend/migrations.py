@@ -167,3 +167,8 @@ async def run_migrations(engine):
                 END IF;
             END $$;
         """))
+        await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_frame_number_snapshot VARCHAR(100)"))
+        await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_brand_snapshot VARCHAR(100)"))
+        await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_model_snapshot VARCHAR(100)"))
+        await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_type_snapshot VARCHAR(50)"))
+        await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_color_snapshot VARCHAR(50)"))

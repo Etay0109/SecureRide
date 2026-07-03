@@ -145,6 +145,7 @@ class TradeResponse(BaseModel):
     vehicle_brand: str | None = None
     vehicle_model: str | None = None
     vehicle_type: str | None = None
+    vehicle_color: str | None = None
     buyer_first_name: str | None = None
     buyer_last_name: str | None = None
     seller_first_name: str | None = None
