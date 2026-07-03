@@ -4,6 +4,7 @@ import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
 import { getStoredUser } from "../utils/auth";
+import SectionHeading from "../components/ui/SectionHeading";
 
 const VEHICLE_TYPES = [
   {
@@ -420,21 +421,6 @@ export default function VerifyOwnership() {
           onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }}
         />
       )}
-    </div>
-  );
-}
-
-function SectionHeading({ icon, number, title }) {
-  return (
-    <div className="flex items-center gap-3 mb-5">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="material-symbols-outlined text-primary text-lg">
-          {icon}
-        </span>
-      </div>
-      <h2 className="text-lg font-bold">
-        {number}. {title}
-      </h2>
     </div>
   );
 }

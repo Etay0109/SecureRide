@@ -4,6 +4,7 @@ import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import NotificationBell from "../components/NotificationBell";
 import { getStoredUser } from "../utils/auth";
+import SectionHeading from "../components/ui/SectionHeading";
 
 const VEHICLE_ICONS = {
   "Electric Scooter": "electric_scooter",
@@ -687,15 +688,3 @@ function SuccessView({ onBack }) {
   );
 }
 
-function SectionHeading({ icon, title }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="material-symbols-outlined text-primary text-lg">
-          {icon}
-        </span>
-      </div>
-      <h2 className="text-lg font-bold">{title}</h2>
-    </div>
-  );
-}
