@@ -38,7 +38,7 @@ Register & Verify Identity ➜ Register Your Vehicle ➜ List It for Sale ➜ Tr
 3. **Vehicle owners** register their vehicles using the frame number and vehicle details. The vehicle is automatically linked to the authenticated user's verified identity.
 4. **Sellers** create marketplace listings for their verified vehicles.
 5. **Buyers** browse listings, chat with sellers, and initiate trades.
-6. **Trades** follow a structured flow with mutual confirmation before ownership transfers.
+6. **Trades** follow a structured flow: buyer requests → seller accepts → both parties confirm. Upon completion, vehicle ownership automatically transfers to the buyer and appears in their My Vehicles dashboard. Completed trade details are permanently preserved in the buyer's and seller's trade history.
 
 ### 🧠 Matching Algorithm
 
@@ -67,8 +67,9 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 
 - Register vehicles by **frame number** (unique identifier)
 - Link vehicles to verified user identities
-- **Stolen vehicle registry** - owners can flag vehicles as stolen
+- **Stolen vehicle registry** — owners can flag vehicles as stolen
 - Anti-fraud protection: registering a stolen frame number **automatically blocks** the user
+- Owners can **delete registered vehicles** — blocked only if the vehicle has an active listing or an active pending/accepted trade
 
 ### 🛒 Marketplace
 
@@ -81,8 +82,16 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 
 - Structured trade flow: buyer requests → seller accepts/rejects → mutual confirmation
 - **Dual confirmation** — both seller and buyer must confirm the trade happened
-- Automatic **ownership transfer** upon trade completion
+- Automatic **ownership transfer** upon trade completion — purchased vehicle immediately appears in the buyer's My Vehicles dashboard
 - Option to **abort** a trade if it did not go through
+- **Trade history snapshot** — vehicle details (brand, model, type, color) are permanently stored in the trade record at completion time, so Buy/Sale History remains accurate even if the vehicle is later deleted
+
+### 👤 Profile Dashboard
+
+- Edit **account details** - update email address and password with current-password verification
+- **My Vehicles** - search, paginate, toggle stolen status, and delete registered vehicles
+- **My Listings** - view and delete active marketplace listings
+- **Trade History** - unified view of active trades plus separate Buy History and Sale History sections with full vehicle and counterparty details
 
 ### 💬 In-App Chat
 
@@ -139,49 +148,65 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 ```
 secureRide/
 │
-├── src/                          # React Frontend
-│   ├── main.jsx                  # App entry point
-│   ├── App.jsx                   # Routes & global layout
-│   ├── index.css                 # Global styles
+├── src/                              # React Frontend
+│   ├── main.jsx                      # App entry point
+│   ├── App.jsx                       # Routes & global layout
+│   ├── index.css                     # Global styles
 │   ├── pages/
-│   │   ├── LandingPage.jsx       # Home / marketing page
-│   │   ├── BuyPage.jsx           # Marketplace with recommendations
-│   │   ├── SellPage.jsx          # Create listings
-│   │   ├── ListingDetailPage.jsx # Listing view, edit, trade, chat
-│   │   ├── VerifyOwnership.jsx   # Vehicle registration
-│   │   ├── ProfilePage.jsx       # User account & vehicles
-│   │   ├── AdminPage.jsx         # Admin dashboard
-│   │   └── AboutPage.jsx         # About the project
+│   │   ├── LandingPage.jsx           # Home / marketing page
+│   │   ├── BuyPage.jsx               # Marketplace with recommendations
+│   │   ├── SellPage.jsx              # Create listings
+│   │   ├── ListingDetailPage.jsx     # Listing view, edit, trade, chat
+│   │   ├── VerifyOwnership.jsx       # Vehicle registration
+│   │   ├── ProfilePage.jsx           # Account, vehicles & trade history
+│   │   ├── AdminPage.jsx             # Admin dashboard
+│   │   └── AboutPage.jsx             # About the project
 │   ├── components/
-│   │   ├── LoginModal.jsx        # Login with resubmission flow
-│   │   ├── RegisterModal.jsx     # Registration with ID upload
-│   │   ├── ChatWidget.jsx        # Global chat overlay
-│   │   ├── NotificationBell.jsx  # Unread message alerts
-│   │   └── BlockedBanner.jsx     # Blocked account notice
+│   │   ├── LoginModal.jsx            # Login with resubmission flow
+│   │   ├── RegisterModal.jsx         # Registration with ID upload
+│   │   ├── ChatWidget.jsx            # Global chat overlay
+│   │   ├── NotificationBell.jsx      # Unread message alerts
+│   │   ├── BlockedBanner.jsx         # Blocked account notice
+│   │   ├── about/                    # About page section components
+│   │   ├── admin/                    # Admin panel components
+│   │   ├── auth/                     # Login & registration forms
+│   │   ├── buy/                      # Marketplace filter components
+│   │   ├── chat/                     # Chat conversation views
+│   │   ├── landing/                  # Landing page sections
+│   │   ├── listing/                  # Listing detail components
+│   │   ├── listings/                 # Listing cards
+│   │   ├── profile/                  # Profile section components
+│   │   ├── sell/                     # Sell flow step components
+│   │   ├── trades/                   # Trade card components
+│   │   ├── ui/                       # Shared UI (header, footer, etc.)
+│   │   └── verify/                   # Vehicle registration step components
 │   └── utils/
-│       └── auth.js               # Auth helper utilities
+│       ├── auth.js                   # Auth helper utilities
+│       └── chatFormatters.js         # Chat message formatting
 │
-├── backend/                      # FastAPI Backend
-│   ├── main.py                   # App setup, CORS, routers
-│   ├── database.py               # DB engine, sessions, table creation
-│   ├── models.py                 # SQLAlchemy ORM models
-│   ├── schemas.py                # Pydantic request/response schemas
-│   ├── encryption.py             # Fernet encrypt/decrypt utilities
-│   ├── migrations.py             # Schema migration helpers
-│   ├── requirements.txt          # Python dependencies
+├── backend/                          # FastAPI Backend
+│   ├── main.py                       # App setup, CORS, routers
+│   ├── database.py                   # DB engine, sessions, table creation
+│   ├── models.py                     # SQLAlchemy ORM models
+│   ├── schemas.py                    # Pydantic request/response schemas
+│   ├── encryption.py                 # Fernet encrypt/decrypt utilities
+│   ├── migrations.py                 # Schema migration helpers
+│   ├── requirements.txt              # Python dependencies
 │   └── routes/
-│       ├── auth.py               # Register, login, profile updates
-│       ├── verify.py             # Vehicle registration & stolen flag
-│       ├── sell.py               # Listing CRUD & available vehicles
-│       ├── trade.py              # Trade lifecycle management
-│       ├── chat.py               # Conversations & messages
-│       ├── admin.py              # Admin moderation endpoints
-│       └── recommendations.py   # Matching algorithm engine
+│       ├── auth.py                   # Register, login, profile updates
+│       ├── verify.py                 # Vehicle registration & deletion
+│       ├── sell.py                   # Listing CRUD & available vehicles
+│       ├── trade.py                  # Trade lifecycle management
+│       ├── chat.py                   # Conversations & messages
+│       ├── admin.py                  # Admin moderation endpoints
+│       └── recommendations.py        # Matching algorithm engine
 │
-├── index.html                    # HTML shell + Tailwind CDN config
-├── package.json                  # Frontend dependencies
-├── vite.config.js                # Vite config with API proxy
-└── eslint.config.js              # ESLint configuration
+├── docs/
+│   └── images/                       # Screenshots & architecture diagrams
+├── index.html                        # HTML shell + Tailwind CDN config
+├── package.json                      # Frontend dependencies
+├── vite.config.js                    # Vite config with API proxy
+└── eslint.config.js                  # ESLint configuration
 ```
 
 ---
@@ -263,13 +288,14 @@ All routes are prefixed with `/api` and served by the FastAPI backend.
 | Prefix | Description |
 |---|---|
 | `/api/auth` | Registration, login, profile management |
-| `/api/verify` | Vehicle registration and stolen flag |
+| `/api/verify` | Vehicle registration, deletion, and stolen flag |
 | `/api/sell` | Listing CRUD and available vehicles |
-| `/api/trades` | Trade lifecycle (request, accept, confirm, abort) |
+| `/api/trades` | Trade lifecycle (request, accept/reject, cancel, abort, confirm-transfer, confirm-receipt) |
 | `/api/chat` | Conversations and messages |
 | `/api/admin` | Admin moderation and user management |
 | `/api/recommendations` | Personalized listing recommendations |
 | `/api/health` | Health check |
+| `/api/stats` | Platform statistics (total verified vehicles) |
 
 Interactive API documentation is available at `http://localhost:8001/docs` (Swagger UI) when the backend is running.
 
@@ -306,7 +332,7 @@ Detailed listing view including vehicle information, seller details, image galle
 
 ### 👤 Profile Page
 
-Personal dashboard where users can manage their account details, registered vehicles, active listings, and complete trade history.
+Personal dashboard where users can edit account details, manage registered vehicles (search, toggle stolen, delete), view active listings, and browse complete Buy and Sale trade history.
 
 ![Profile Page](docs/images/profile-page.png)
 
