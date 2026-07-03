@@ -56,7 +56,7 @@ class Listing(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     frame_number: Mapped[str | None] = mapped_column(
-        String(100), ForeignKey("vehicles.frame_number", ondelete="SET NULL"), nullable=True, index=True
+        String(100), ForeignKey("vehicles.frame_number", ondelete="SET NULL"), nullable=True, unique=True, index=True
     )
     seller_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True

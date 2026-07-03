@@ -172,3 +172,15 @@ async def run_migrations(engine):
         await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_model_snapshot VARCHAR(100)"))
         await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_type_snapshot VARCHAR(50)"))
         await conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS vehicle_color_snapshot VARCHAR(50)"))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_indexes
+                    WHERE tablename = 'listings' AND indexname = 'uq_listings_frame_number'
+                ) THEN
+                    CREATE UNIQUE INDEX uq_listings_frame_number ON listings (frame_number)
+                    WHERE frame_number IS NOT NULL;
+                END IF;
+            END $$;
+        """))
