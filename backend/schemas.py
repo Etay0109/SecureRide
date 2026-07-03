@@ -135,7 +135,7 @@ class TradeResponse(BaseModel):
     listing_id: str | None
     buyer_id: str
     seller_id: str
-    frame_number: str
+    frame_number: str | None
     price: float
     status: str
     seller_confirmed: bool

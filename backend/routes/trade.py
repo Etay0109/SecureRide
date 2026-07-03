@@ -13,9 +13,11 @@ router = APIRouter()
 
 # Convert a Trade database object into an API response.
 async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
-    vehicle = (await db.execute(
-        select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
-    )).scalar_one_or_none()
+    vehicle = None
+    if trade.frame_number:
+        vehicle = (await db.execute(
+            select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
+        )).scalar_one_or_none()
 
     buyer = (await db.execute(select(User).where(User.id == trade.buyer_id))).scalar_one_or_none()
     seller = (await db.execute(select(User).where(User.id == trade.seller_id))).scalar_one_or_none()
