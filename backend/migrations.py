@@ -127,3 +127,43 @@ async def run_migrations(engine):
         await conn.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_messages_sender_id ON messages (sender_id)"
         ))
+        await conn.execute(text(
+            "ALTER TABLE trades ALTER COLUMN frame_number DROP NOT NULL"
+        ))
+        await conn.execute(text("""
+            DO $$
+            DECLARE fk_name TEXT;
+            BEGIN
+                SELECT constraint_name INTO fk_name
+                FROM information_schema.table_constraints
+                WHERE table_name = 'trades'
+                  AND constraint_type = 'FOREIGN KEY'
+                  AND constraint_name LIKE '%frame_number%'
+                LIMIT 1;
+                IF fk_name IS NOT NULL THEN
+                    EXECUTE 'ALTER TABLE trades DROP CONSTRAINT ' || fk_name;
+                    EXECUTE 'ALTER TABLE trades ADD CONSTRAINT trades_frame_number_fkey
+                             FOREIGN KEY (frame_number) REFERENCES vehicles(frame_number) ON DELETE SET NULL';
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text(
+            "ALTER TABLE listings ALTER COLUMN frame_number DROP NOT NULL"
+        ))
+        await conn.execute(text("""
+            DO $$
+            DECLARE fk_name TEXT;
+            BEGIN
+                SELECT constraint_name INTO fk_name
+                FROM information_schema.table_constraints
+                WHERE table_name = 'listings'
+                  AND constraint_type = 'FOREIGN KEY'
+                  AND constraint_name LIKE '%frame_number%'
+                LIMIT 1;
+                IF fk_name IS NOT NULL THEN
+                    EXECUTE 'ALTER TABLE listings DROP CONSTRAINT ' || fk_name;
+                    EXECUTE 'ALTER TABLE listings ADD CONSTRAINT listings_frame_number_fkey
+                             FOREIGN KEY (frame_number) REFERENCES vehicles(frame_number) ON DELETE SET NULL';
+                END IF;
+            END $$;
+        """))

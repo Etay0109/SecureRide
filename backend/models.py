@@ -55,8 +55,8 @@ class Listing(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    frame_number: Mapped[str] = mapped_column(
-        String(100), ForeignKey("vehicles.frame_number"), nullable=False, index=True
+    frame_number: Mapped[str | None] = mapped_column(
+        String(100), ForeignKey("vehicles.frame_number", ondelete="SET NULL"), nullable=True, index=True
     )
     seller_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True
@@ -88,8 +88,8 @@ class Trade(Base):
     seller_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True
     )
-    frame_number: Mapped[str] = mapped_column(
-        String(100), ForeignKey("vehicles.frame_number"), nullable=False, index=True
+    frame_number: Mapped[str | None] = mapped_column(
+        String(100), ForeignKey("vehicles.frame_number", ondelete="SET NULL"), nullable=True, index=True
     )
     price: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(
