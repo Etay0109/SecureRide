@@ -41,7 +41,8 @@ export default function AdminChatPanel({ activeChat, chatUser, token, currentUse
         body: JSON.stringify({ content: newMsg.trim() }),
       });
       if (!res.ok) throw new Error("Failed to send");
-      setMessages((prev) => [...prev, await res.json()]);
+      const newMsg = await res.json();
+      setMessages((prev) => [...prev, newMsg]);
       setNewMsg("");
     } catch (err) { alert(err.message); }
     finally { setSendingMsg(false); }

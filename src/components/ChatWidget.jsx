@@ -112,7 +112,8 @@ export default function ChatWidget() {
         setSendError(data?.detail || "Failed to send");
         return;
       }
-      setMessages((prev) => [...prev, await res.json()]);
+      const msg = await res.json();
+      setMessages((prev) => [...prev, msg]);
       setNewMessage("");
       loadConversations();
     } catch { setSendError("Failed to send message. Please try again."); }
