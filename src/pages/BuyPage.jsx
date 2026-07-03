@@ -1,27 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
-import NotificationBell from "../components/NotificationBell";
+import PageHeader from "../components/ui/PageHeader";
+import PageFooter from "../components/ui/PageFooter";
 import { getStoredUser } from "../utils/auth";
 import ListingCard from "../components/listings/ListingCard";
-
-const VEHICLE_ICONS = {
-  "Electric Scooter": "electric_scooter",
-  "Bicycle": "pedal_bike",
-  "Electric Bicycle": "electric_moped",
-};
-
-const VEHICLE_TYPE_OPTIONS = [
-  { id: "all", label: "All Types", icon: "apps" },
-  {
-    id: "Electric Scooter",
-    label: "Electric Scooter",
-    icon: "electric_scooter",
-  },
-  { id: "Bicycle", label: "Bicycle", icon: "pedal_bike" },
-  { id: "Electric Bicycle", label: "Electric Bicycle", icon: "electric_moped" },
-];
+import FilterBar from "../components/buy/FilterBar";
 
 export default function BuyPage() {
   const location = useLocation();
@@ -30,10 +15,8 @@ export default function BuyPage() {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-
   const [recommendations, setRecommendations] = useState([]);
   const [recsLoading, setRecsLoading] = useState(false);
-
   const [typeFilter, setTypeFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
@@ -52,9 +35,7 @@ export default function BuyPage() {
     const token = localStorage.getItem("token");
     if (!token || !user) return;
     setRecsLoading(true);
-    fetch("/api/recommendations/?limit=6", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch("/api/recommendations/?limit=6", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setRecommendations(data))
       .catch(() => {})
@@ -62,22 +43,9 @@ export default function BuyPage() {
   }, [user, location.key]);
 
   const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    navigate("/");
-  };
-
-  const openLogin = () => {
-    setShowRegister(false);
-    setShowLogin(true);
-  };
-
-  const openRegister = () => {
-    setShowLogin(false);
-    setShowRegister(true);
-  };
+  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); setUser(null); navigate("/"); };
+  const openLogin = () => { setShowRegister(false); setShowLogin(true); };
+  const openRegister = () => { setShowLogin(false); setShowRegister(true); };
 
   const filtered = listings
     .filter((l) => typeFilter === "all" || l.vehicle_type === typeFilter)
@@ -86,16 +54,10 @@ export default function BuyPage() {
     .filter((l) => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      return (
-        (l.vehicle_brand || "").toLowerCase().includes(q) ||
-        (l.vehicle_model || "").toLowerCase().includes(q) ||
-        (l.city || "").toLowerCase().includes(q) ||
-        (l.description || "").toLowerCase().includes(q)
-      );
+      return (l.vehicle_brand || "").toLowerCase().includes(q) || (l.vehicle_model || "").toLowerCase().includes(q) || (l.city || "").toLowerCase().includes(q) || (l.description || "").toLowerCase().includes(q);
     })
     .sort((a, b) => {
-      if (sortBy === "newest")
-        return new Date(b.created_at) - new Date(a.created_at);
+      if (sortBy === "newest") return new Date(b.created_at) - new Date(a.created_at);
       if (sortBy === "price_low") return a.price - b.price;
       if (sortBy === "price_high") return b.price - a.price;
       return 0;
@@ -103,238 +65,25 @@ export default function BuyPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg shadow-[0_20px_40px_rgba(25,28,29,0.05)]">
-        <div className="flex justify-between items-center px-8 h-20 max-w-screen-2xl mx-auto">
-          <Link
-            to="/"
-            className="text-2xl font-black tracking-tighter text-slate-900"
-          >
-            Secure Ride
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link
-              to="/"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              Home
-            </Link>
-            {user && (
-              <>
-                <Link
-                  to="/buy"
-                  className="text-blue-700 font-bold border-b-2 border-blue-700 pb-1 tracking-tight"
-                >
-                  Buy
-                </Link>
-                <Link
-                  to="/sell"
-                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-                >
-                  Sell
-                </Link>
-                <Link
-                  to="/verify"
-                  className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-                >
-                  Verify Ownership
-                </Link>
-              </>
-            )}
-            <Link
-              to="/about"
-              className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight"
-            >
-              About Us
-            </Link>
-            {user?.is_admin && (
-              <Link
-                to="/admin"
-                className="text-red-500 hover:text-red-700 font-semibold transition-colors tracking-tight"
-              >
-                Admin
-              </Link>
-            )}
-          </div>
-          {user ? (
-            <div className="flex items-center gap-4">
-              <Link to="/profile" className="flex items-center gap-2 group">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${user.blocked ? "bg-red-100 ring-2 ring-red-300" : "bg-primary/10 group-hover:ring-2 group-hover:ring-primary/30"}`}
-                >
-                  <span
-                    className={`material-symbols-outlined text-lg ${user.blocked ? "text-red-600" : "text-primary"}`}
-                  >
-                    {user.blocked ? "person_off" : "person"}
-                  </span>
-                </div>
-                <span
-                  className={`text-sm font-semibold hidden sm:inline transition-colors ${user.blocked ? "text-red-600" : "text-on-surface group-hover:text-primary"}`}
-                >
-                  {user.first_name} {user.last_name}
-                </span>
-              </Link>
-              <NotificationBell />
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-slate-500 hover:text-red-600 font-medium text-sm transition-all"
-              >
-                Log Out
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowLogin(true)}
-                className="px-6 py-2 text-slate-500 hover:text-slate-900 font-medium transition-all"
-              >
-                Log In
-              </button>
-              <button
-                onClick={openRegister}
-                className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all"
-              >
-                Sign Up
-              </button>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Main */}
+      <PageHeader user={user} onLogout={handleLogout} onOpenLogin={openLogin} onOpenRegister={openRegister} activePage="buy" />
       <main className="flex-1 w-full max-w-screen-xl mx-auto px-6 pt-28 pb-16">
         <div className="mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-            Browse Vehicles
-          </h1>
-          <p className="text-on-surface-variant">
-            Find your next ride from verified owners.
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2">Browse Vehicles</h1>
+          <p className="text-on-surface-variant">Find your next ride from verified owners.</p>
         </div>
-
-        {/* Search bar */}
-        <div className="relative mb-6">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">
-            search
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by brand, model, or description..."
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 mb-8">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base text-primary">
-                filter_list
-              </span>
-              Vehicle Type
-            </span>
-            {VEHICLE_TYPE_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => setTypeFilter(opt.id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  typeFilter === opt.id
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-surface-container-high text-on-surface-variant hover:bg-primary/10"
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">
-                  {opt.icon}
-                </span>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-on-surface">
-                Condition
-              </span>
-              <select
-                value={conditionFilter}
-                onChange={(e) => setConditionFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-outline-variant/30 bg-surface-container-low text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <option value="all">All</option>
-                <option value="brand_new">Brand New</option>
-                <option value="used">Used</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-on-surface">
-                Max Price
-              </span>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-bold">
-                  ₪
-                </span>
-                <input
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Any"
-                  className="w-28 pl-7 pr-3 py-1.5 rounded-lg border border-outline-variant/30 bg-surface-container-low text-on-surface text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-on-surface">Sort</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-outline-variant/30 bg-surface-container-low text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <option value="newest">Newest First</option>
-                <option value="price_low">Price: Low to High</option>
-                <option value="price_high">Price: High to Low</option>
-              </select>
-            </div>
-
-            {(typeFilter !== "all" ||
-              conditionFilter !== "all" ||
-              maxPrice ||
-              searchQuery) && (
-              <button
-                onClick={() => {
-                  setTypeFilter("all");
-                  setConditionFilter("all");
-                  setMaxPrice("");
-                  setSearchQuery("");
-                }}
-                className="text-sm text-red-500 font-medium hover:underline flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-base">
-                  close
-                </span>
-                Clear Filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Recommended for You */}
+        <FilterBar
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+          typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+          conditionFilter={conditionFilter} setConditionFilter={setConditionFilter}
+          maxPrice={maxPrice} setMaxPrice={setMaxPrice}
+          sortBy={sortBy} setSortBy={setSortBy}
+        />
         {user && recommendations.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-primary text-xl">
-                recommend
-              </span>
-              <h2 className="text-lg font-extrabold tracking-tight">
-                Recommended for You
-              </h2>
-              <span className="text-xs text-on-surface-variant bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
-                Based on your activity
-              </span>
+              <span className="material-symbols-outlined text-primary text-xl">recommend</span>
+              <h2 className="text-lg font-extrabold tracking-tight">Recommended for You</h2>
+              <span className="text-xs text-on-surface-variant bg-primary/10 px-2 py-0.5 rounded-full font-semibold">Based on your activity</span>
             </div>
             {recsLoading ? (
               <div className="text-sm text-on-surface-variant">Loading recommendations...</div>
@@ -349,83 +98,34 @@ export default function BuyPage() {
             )}
           </div>
         )}
-
-        {/* Results count */}
         <p className="text-sm text-on-surface-variant mb-6">
-          {loading
-            ? "Loading..."
-            : `${filtered.length} listing${filtered.length !== 1 ? "s" : ""} found`}
+          {loading ? "Loading..." : `${filtered.length} listing${filtered.length !== 1 ? "s" : ""} found`}
         </p>
-
-        {/* Listings grid */}
         {loading ? (
-          <div className="text-center py-16 text-on-surface-variant">
-            Loading listings...
-          </div>
+          <div className="text-center py-16 text-on-surface-variant">Loading listings...</div>
         ) : filtered.length === 0 ? (
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-10 text-center">
             <div className="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-on-surface-variant text-2xl">
-                search_off
-              </span>
+              <span className="material-symbols-outlined text-on-surface-variant text-2xl">search_off</span>
             </div>
-            <p className="font-semibold text-on-surface mb-1">
-              No listings found
-            </p>
+            <p className="font-semibold text-on-surface mb-1">No listings found</p>
             <p className="text-sm text-on-surface-variant">
-              {listings.length === 0
-                ? "There are no vehicles for sale yet. Check back soon!"
-                : "Try adjusting your filters to see more results."}
+              {listings.length === 0 ? "There are no vehicles for sale yet. Check back soon!" : "Try adjusting your filters to see more results."}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
+            {filtered.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-surface-container-lowest border-t border-outline-variant/20 py-6 px-8">
-        <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-on-surface-variant">
-          <div className="font-black text-on-surface tracking-tighter">
-            Secure Ride
-          </div>
-          <p>&copy; 2026 Secure Ride. Precision Ownership Verification.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-primary transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Terms of Service
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Contact Support
-            </a>
-          </div>
-        </div>
-      </footer>
-
+      <PageFooter />
       {showLogin && (
-        <LoginModal
-          onClose={() => setShowLogin(false)}
-          onSwitchToRegister={openRegister}
-          onLoginSuccess={(userData) => {
-            setShowLogin(false);
-            setUser(userData);
-          }}
-        />
+        <LoginModal onClose={() => setShowLogin(false)} onSwitchToRegister={openRegister} onLoginSuccess={(userData) => { setShowLogin(false); setUser(userData); }} />
       )}
       {showRegister && (
-        <RegisterModal
-          onClose={() => setShowRegister(false)}
-          onSwitchToLogin={openLogin}
-          onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }}
-        />
+        <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={openLogin} onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }} />
       )}
     </div>
   );
 }
-
