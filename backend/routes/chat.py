@@ -208,7 +208,7 @@ async def get_messages(
 async def send_message(
     conversation_id: str,
     body: SendMessageRequest,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id

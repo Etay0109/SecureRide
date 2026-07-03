@@ -140,10 +140,6 @@ export default function ChatWidget() {
         },
         body: JSON.stringify({ content: newMessage.trim() }),
       });
-      if (res.status === 403) {
-        setSendError("Your account is blocked. You cannot send messages.");
-        return;
-      }
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setSendError(data?.detail || "Failed to send");
