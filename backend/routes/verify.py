@@ -120,7 +120,10 @@ async def delete_vehicle(
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     listing_result = await db.execute(
-        select(Listing).where(Listing.frame_number == frame_number).limit(1)
+        select(Listing).where(
+            Listing.frame_number == frame_number,
+            Listing.seller_id == current_user.id,
+        ).limit(1)
     )
     if listing_result.scalar_one_or_none():
         raise HTTPException(
