@@ -59,8 +59,7 @@ async def start_conversation(
     return {"id": conv.id}
 
 
-# Return all conversations for the authenticated user.
-# Uses require_auth so blocked users can still view their existing chat history.
+# Returns all conversations for the authenticated user with their latest message and chat details.
 @router.get("/conversations")
 async def list_conversations(
     current_user: User = Depends(require_auth),

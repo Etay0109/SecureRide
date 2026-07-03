@@ -102,6 +102,7 @@ async def verify_ownership(
     return vehicle
 
 
+# Deletes a user's vehicle if it is not linked to an active listing or trade.
 @router.delete("/{frame_number}")
 async def delete_vehicle(
     frame_number: str,
@@ -128,7 +129,10 @@ async def delete_vehicle(
         )
 
     trade_result = await db.execute(
-        select(Trade).where(Trade.frame_number == frame_number).limit(1)
+        select(Trade).where(
+            Trade.frame_number == frame_number,
+            Trade.status.in_(["pending_seller", "accepted"]),
+        ).limit(1)
     )
     if trade_result.scalar_one_or_none():
         raise HTTPException(

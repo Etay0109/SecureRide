@@ -174,7 +174,7 @@ async def get_recommendations(
         select(Listing, Vehicle, User)
         .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
         .join(User, Listing.seller_id == User.id)
-        .where(Vehicle.stolen == False, Listing.seller_id != user_id)  # noqa: E712
+        .where(Vehicle.stolen == False, Listing.seller_id != user_id) 
     )
     all_rows = all_rows_result.all()
 
@@ -239,7 +239,6 @@ async def get_recommendations(
             vectors_with_weights.append((listing_vectors[lid], weight))
 
     if not vectors_with_weights:
-        # All interacted listings have been deleted; fall back to newest
         results = []
         for row in all_rows[:limit]:
             listing, vehicle, seller = row

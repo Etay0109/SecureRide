@@ -304,6 +304,14 @@ Detailed listing view including vehicle information, seller details, image galle
 
 ---
 
+### 👤 Profile Page
+
+Personal dashboard where users can manage their account details, registered vehicles, active listings, and complete trade history.
+
+![Profile Page](docs/images/profile-page.png)
+
+---
+
 ### 💬 Chat System
 
 Built-in messaging system enabling secure communication between buyers, sellers, and administrators.

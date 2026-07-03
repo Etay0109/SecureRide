@@ -179,8 +179,7 @@ async def require_active_user(
     return user
 
 
-# Validate JWT only — does not check blocked or registration status.
-# Use for endpoints where a blocked user still needs read access to their own data.
+# Authenticates the user by JWT without checking blocked or registration status.
 async def require_auth(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
@@ -203,8 +202,7 @@ async def require_admin(
     return user
 
 
-# Return the authenticated user's profile information.
-# Uses require_auth (not require_active_user) so blocked users can still read their own status.
+# Returns the authenticated user's profile information.
 @router.get("/me", response_model=UserResponse)
 async def get_me(
     current_user: User = Depends(require_auth),
