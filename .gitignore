@@ -7,14 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Frontend dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+.vite/
 
-# Environment variables
+# Environment variable files (frontend / root-level)
 .env
-backend/.env
+.env.local
+.env.*.local
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -26,7 +29,3 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
-
-# Python cache
-__pycache__/
-*.pyc
