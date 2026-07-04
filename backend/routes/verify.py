@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,8 +55,15 @@ async def verify_ownership(
     current_user: User = Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
+    frame_number = body.frame_number.strip()
+    if not re.fullmatch(r"[A-Za-z0-9]{16,18}", frame_number):
+        raise HTTPException(
+            status_code=400,
+            detail="Frame number must contain 16–18 letters and numbers only.",
+        )
+
     result = await db.execute(
-        select(Vehicle).where(Vehicle.frame_number == body.frame_number)
+        select(Vehicle).where(Vehicle.frame_number == frame_number)
     )
     existing = result.scalar_one_or_none()
 
@@ -77,7 +86,7 @@ async def verify_ownership(
         )
 
     vehicle = Vehicle(
-        frame_number=body.frame_number,
+        frame_number=frame_number,
         vehicle_type=body.vehicle_type,
         id_number=current_user.id_number,
         owner_id=current_user.id,

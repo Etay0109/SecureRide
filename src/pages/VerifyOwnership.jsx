@@ -31,6 +31,10 @@ export default function VerifyOwnership() {
     const form = document.getElementById("verify-form");
     const frameNumber = form.querySelector('[name="frame_number"]').value.trim();
     if (!frameNumber) { setError("Frame number is required."); return; }
+    if (!/^[A-Za-z0-9]{16,18}$/.test(frameNumber)) {
+      setError("Frame number must contain 16–18 letters and numbers only.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/verify/", {
