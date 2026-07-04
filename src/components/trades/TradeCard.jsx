@@ -143,6 +143,19 @@ export default function TradeCard({ trade, isBuyer, isSeller, onAction }) {
             You confirmed — waiting for the other party
           </div>
         )}
+        {isAccepted && (
+          <button
+            onClick={() => {
+              if (confirm("Are you sure the trade did not happen? This will cancel the trade.")) {
+                onAction(trade.id, "abort");
+              }
+            }}
+            className="flex-1 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg font-bold text-sm hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-1"
+          >
+            <span className="material-symbols-outlined text-base">cancel</span>
+            Trade Did Not Happen
+          </button>
+        )}
       </div>
     </div>
   );
