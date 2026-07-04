@@ -247,7 +247,26 @@ async def confirm_transfer(
 ):
     """Seller confirms they have transferred the vehicle."""
     user_id = current_user.id
+    pre = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
+    if pre and pre.status == "cancelled" and pre.frame_number:
+        v = (await db.execute(
+            select(Vehicle).where(Vehicle.frame_number == pre.frame_number)
+        )).scalar_one_or_none()
+        if v and v.stolen:
+            raise HTTPException(
+                status_code=400,
+                detail="This trade has been cancelled because the vehicle was reported as stolen.",
+            )
     trade = await _get_trade_or_403(db, trade_id, user_id, role="seller", allowed_statuses="accepted", role_error="Only the seller can confirm transfer", status_error="Trade must be accepted first")
+
+    vehicle = (await db.execute(
+        select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
+    )).scalar_one_or_none()
+    if vehicle and vehicle.stolen:
+        raise HTTPException(
+            status_code=400,
+            detail="This vehicle has been reported stolen. Trade cannot proceed.",
+        )
 
     trade.seller_confirmed = True
     if trade.buyer_confirmed:
@@ -268,7 +287,26 @@ async def confirm_receipt(
 ):
     """Buyer confirms they have received the vehicle."""
     user_id = current_user.id
+    pre = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
+    if pre and pre.status == "cancelled" and pre.frame_number:
+        v = (await db.execute(
+            select(Vehicle).where(Vehicle.frame_number == pre.frame_number)
+        )).scalar_one_or_none()
+        if v and v.stolen:
+            raise HTTPException(
+                status_code=400,
+                detail="This trade has been cancelled because the vehicle was reported as stolen.",
+            )
     trade = await _get_trade_or_403(db, trade_id, user_id, role="buyer", allowed_statuses="accepted", role_error="Only the buyer can confirm receipt", status_error="Trade must be accepted first")
+
+    vehicle = (await db.execute(
+        select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
+    )).scalar_one_or_none()
+    if vehicle and vehicle.stolen:
+        raise HTTPException(
+            status_code=400,
+            detail="This vehicle has been reported stolen. Trade cannot proceed.",
+        )
 
     trade.buyer_confirmed = True
     if trade.seller_confirmed:
@@ -291,6 +329,11 @@ async def _complete_trade(trade: Trade, db: AsyncSession):
     vehicle = (await db.execute(
         select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
     )).scalar_one()
+    if vehicle.stolen:
+        raise HTTPException(
+            status_code=400,
+            detail="This vehicle has been reported stolen. Ownership transfer is blocked.",
+        )
     vehicle.owner_id = trade.buyer_id
     trade.vehicle_frame_number_snapshot = vehicle.frame_number
     trade.vehicle_brand_snapshot = vehicle.brand

@@ -1,7 +1,7 @@
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -43,6 +43,22 @@ async def toggle_stolen(
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     vehicle.stolen = not vehicle.stolen
+
+    if vehicle.stolen:
+        active_trades = (await db.execute(
+            select(Trade).where(
+                Trade.frame_number == frame_number,
+                Trade.status.in_(["pending_seller", "accepted"]),
+            )
+        )).scalars().all()
+        for t in active_trades:
+            t.status = "cancelled"
+            t.listing_id = None 
+
+        await db.execute(
+            sa_delete(Listing).where(Listing.frame_number == frame_number)
+        )
+
     await db.commit()
     await db.refresh(vehicle)
     return vehicle
