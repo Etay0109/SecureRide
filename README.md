@@ -152,6 +152,8 @@ secureRide/
 │   ├── main.jsx                      # App entry point
 │   ├── App.jsx                       # Routes & global layout
 │   ├── index.css                     # Global styles
+│   ├── context/
+│   │   └── AuthContext.jsx           # Global auth state (user, login/logout, modals)
 │   ├── pages/
 │   │   ├── LandingPage.jsx           # Home / marketing page
 │   │   ├── BuyPage.jsx               # Marketplace with recommendations
@@ -178,10 +180,12 @@ secureRide/
 │   │   ├── profile/                  # Profile section components
 │   │   ├── sell/                     # Sell flow step components
 │   │   ├── trades/                   # Trade card components
-│   │   ├── ui/                       # Shared UI (header, footer, etc.)
+│   │   ├── ui/                       # Shared UI (PageHeader, PageFooter, DetailRow, EmptyState, etc.)
 │   │   └── verify/                   # Vehicle registration step components
 │   └── utils/
+│       ├── api.js                    # Centralized fetch client (auth, error handling)
 │       ├── auth.js                   # Auth helper utilities
+│       ├── constants.js              # Shared constants (VEHICLE_ICONS, inputCls variants)
 │       └── chatFormatters.js         # Chat message formatting
 │
 ├── backend/                          # FastAPI Backend
@@ -189,6 +193,7 @@ secureRide/
 │   ├── database.py                   # DB engine, sessions, table creation
 │   ├── models.py                     # SQLAlchemy ORM models
 │   ├── schemas.py                    # Pydantic request/response schemas
+│   ├── serializers.py                # Shared listing serialization helpers
 │   ├── encryption.py                 # Fernet encrypt/decrypt utilities
 │   ├── migrations.py                 # Schema migration helpers
 │   ├── requirements.txt              # Python dependencies

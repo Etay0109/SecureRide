@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { api } from "../../utils/api";
 
-export default function BlockedUsersList({ token, activeChatUserId, onSelectUser, onCountChange, onUnblocked }) {
+export default function BlockedUsersList({ activeChatUserId, onSelectUser, onCountChange, onUnblocked }) {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [blockedLoading, setBlockedLoading] = useState(true);
 
@@ -10,11 +11,7 @@ export default function BlockedUsersList({ token, activeChatUserId, onSelectUser
 
   async function fetchBlockedUsers() {
     try {
-      const res = await fetch("/api/admin/blocked-users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to load");
-      const data = await res.json();
+      const data = await api("/admin/blocked-users");
       setBlockedUsers(data);
       onCountChange?.(data.length);
     } catch { /* ignore */ }
@@ -24,11 +21,7 @@ export default function BlockedUsersList({ token, activeChatUserId, onSelectUser
   async function handleUnblock(userId) {
     if (!confirm("Are you sure you want to unblock this user?")) return;
     try {
-      const res = await fetch(`/api/admin/users/${userId}/unblock`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to unblock");
+      await api(`/admin/users/${userId}/unblock`, { method: "PUT" });
       setBlockedUsers((prev) => {
         const next = prev.filter((u) => u.id !== userId);
         onCountChange?.(next.length);
@@ -40,7 +33,7 @@ export default function BlockedUsersList({ token, activeChatUserId, onSelectUser
 
   async function handleKeepBlocked(userId) {
     try {
-      await fetch(`/api/admin/users/${userId}/block`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+      await api(`/admin/users/${userId}/block`, { method: "PUT" });
       alert("User remains blocked.");
     } catch (err) { alert(err.message); }
   }

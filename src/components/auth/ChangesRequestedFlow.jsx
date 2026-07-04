@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { api } from "../../utils/api";
 
 export default function ChangesRequestedFlow({ changesRequested, onClose, onBack }) {
   const [resubmitLoading, setResubmitLoading] = useState(false);
@@ -11,6 +12,7 @@ export default function ChangesRequestedFlow({ changesRequested, onClose, onBack
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { setResubmitError("Please upload an image file"); return; }
+    if (file.size > 10 * 1024 * 1024) { setResubmitError("ID card image must be under 10 MB"); return; }
     const reader = new FileReader();
     reader.onload = (ev) => setNewIdCardImage(ev.target.result);
     reader.readAsDataURL(file);
@@ -30,16 +32,7 @@ export default function ChangesRequestedFlow({ changesRequested, onClose, onBack
         id_number: form["resubmit-id-number"].value.trim() || undefined,
         id_card_image: newIdCardImage || undefined,
       };
-      const res = await fetch("/api/auth/resubmit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        let message = "Resubmission failed";
-        try { const data = await res.json(); message = data.detail || message; } catch {}
-        throw new Error(message);
-      }
+      await api("/auth/resubmit", { method: "POST", body: payload });
       setResubmitSuccess(true);
     } catch (err) { setResubmitError(err.message); }
     finally { setResubmitLoading(false); }

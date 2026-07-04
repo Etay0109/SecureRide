@@ -1,9 +1,7 @@
-import TradeStatusCard from "../trades/TradeStatusCard";
+import TradeCard from "../trades/TradeCard";
 
 export default function ListingDetailActions({
   isOwnListing,
-  user,
-  listing,
   editing,
   deleting,
   saving,
@@ -17,7 +15,6 @@ export default function ListingDetailActions({
   onDelete,
   onBuyNow,
   onTradeAction,
-  onOpenLogin,
   onOpenChat,
 }) {
   return (
@@ -67,21 +64,21 @@ export default function ListingDetailActions({
             <div className="mt-3 space-y-2">
               <p className="text-xs font-semibold text-on-surface-variant">Incoming Buy Requests</p>
               {pendingTradesForSeller.map((t) => (
-                <TradeStatusCard key={t.id} trade={t} role="seller" onAction={onTradeAction} />
+                <TradeCard variant="compact" key={t.id} trade={t} role="seller" onAction={onTradeAction} />
               ))}
             </div>
           )}
           {acceptedTradeForSeller && (
             <div className="mt-3 space-y-2">
               <p className="text-xs font-semibold text-on-surface-variant">Active Trade</p>
-              <TradeStatusCard trade={acceptedTradeForSeller} role="seller" onAction={onTradeAction} />
+              <TradeCard variant="compact" trade={acceptedTradeForSeller} role="seller" onAction={onTradeAction} />
             </div>
           )}
         </div>
       ) : (
         <>
           {myActiveTrade ? (
-            <TradeStatusCard trade={myActiveTrade} role="buyer" onAction={onTradeAction} />
+            <TradeCard variant="compact" trade={myActiveTrade} role="buyer" onAction={onTradeAction} />
           ) : (
             <button
               onClick={onBuyNow}

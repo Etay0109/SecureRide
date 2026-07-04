@@ -1,10 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import LoginModal from "../components/LoginModal";
-import RegisterModal from "../components/RegisterModal";
+import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
-import { getStoredUser } from "../utils/auth";
 import AboutMission from "../components/about/AboutMission";
 import AboutHowItWorks from "../components/about/AboutHowItWorks";
 
@@ -14,18 +10,9 @@ const TEAM = [
 ];
 
 export default function AboutPage() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(getStoredUser);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-
-  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); setUser(null); navigate("/"); };
-  const openLogin = () => { setShowRegister(false); setShowLogin(true); };
-  const openRegister = () => { setShowLogin(false); setShowRegister(true); };
-
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      <PageHeader user={user} onLogout={handleLogout} onOpenLogin={openLogin} onOpenRegister={openRegister} activePage="about" />
+      <PageHeader activePage="about" />
       <main className="flex-1 pt-20">
         <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-primary/90 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
@@ -86,12 +73,6 @@ export default function AboutPage() {
         </section>
       </main>
       <PageFooter />
-      {showLogin && (
-        <LoginModal onClose={() => setShowLogin(false)} onSwitchToRegister={openRegister} onLoginSuccess={(userData) => { setShowLogin(false); setUser(userData); }} />
-      )}
-      {showRegister && (
-        <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={openLogin} onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }} />
-      )}
     </div>
   );
 }

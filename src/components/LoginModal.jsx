@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ChangesRequestedFlow from "./auth/ChangesRequestedFlow";
 import LoginForm from "./auth/LoginForm";
+import { api } from "../utils/api";
 
 export default function LoginModal({ onClose, onSwitchToRegister, onLoginSuccess }) {
   const [error, setError] = useState("");
@@ -15,21 +16,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, onLoginSuccess
     const email = form["login-email"].value;
     const password = form["login-password"].value;
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        let message = "Login failed";
-        try { const data = await res.json(); message = data.detail || message; } catch {}
-        if (message.startsWith("__CHANGES_REQUESTED__|")) {
-          setChangesRequested({ email, password, reason: message.replace("__CHANGES_REQUESTED__|", "") });
-          return;
-        }
-        throw new Error(message);
-      }
-      const data = await res.json();
+      const data = await api("/auth/login", { method: "POST", body: { email, password } });
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
       if (data.user?.blocked) {
@@ -39,6 +26,10 @@ export default function LoginModal({ onClose, onSwitchToRegister, onLoginSuccess
       if (onLoginSuccess) onLoginSuccess(data.user);
       else window.location.reload();
     } catch (err) {
+      if (err.detail?.code === "changes_requested") {
+        setChangesRequested({ email, password, reason: err.detail.reason });
+        return;
+      }
       setError(err.message);
     } finally {
       setLoading(false);

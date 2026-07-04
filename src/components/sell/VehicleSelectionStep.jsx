@@ -1,28 +1,16 @@
-import { Link } from "react-router-dom";
-
-const VEHICLE_ICONS = {
-  "Electric Scooter": "electric_scooter",
-  "Bicycle": "pedal_bike",
-  "Electric Bicycle": "electric_moped",
-};
+import EmptyState from "../ui/EmptyState";
+import { VEHICLE_ICONS } from "../../utils/constants";
 
 export default function VehicleSelectionStep({ vehicles, onSelect }) {
   if (vehicles.length === 0) {
     return (
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-10 text-center">
-        <div className="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center mx-auto mb-4">
-          <span className="material-symbols-outlined text-on-surface-variant text-2xl">directions_bike</span>
-        </div>
-        <p className="font-semibold text-on-surface mb-1">No vehicles available to sell</p>
-        <p className="text-sm text-on-surface-variant mb-4">You need to verify ownership of a vehicle before you can sell it.</p>
-        <Link
-          to="/verify"
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all"
-        >
-          Verify a Vehicle
-          <span className="material-symbols-outlined text-base">arrow_forward</span>
-        </Link>
-      </div>
+      <EmptyState
+        icon="directions_bike"
+        title="No vehicles available to sell"
+        description="You need to verify ownership of a vehicle before you can sell it."
+        actionLabel="Verify a Vehicle"
+        actionTo="/verify"
+      />
     );
   }
 

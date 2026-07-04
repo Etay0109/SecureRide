@@ -1,5 +1,6 @@
 import { useState } from "react";
 import RegistrationForm from "./auth/RegistrationForm";
+import { api } from "../utils/api";
 
 export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSuccess }) {
   const [error, setError] = useState("");
@@ -19,36 +20,29 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegisterSucc
     if (!idCardImage) { setError("Please upload an image of your ID card"); return; }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      await api("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           first_name: form["register-first-name"].value,
           last_name: form["register-last-name"].value,
           email: form["register-email"].value,
           password,
           id_number: idNumber,
           id_card_image: idCardImage,
-        }),
+        },
       });
-      if (!res.ok) {
-        let message = "Registration failed";
-        try {
-          const data = await res.json();
-          if (res.status === 422 && Array.isArray(data.detail)) {
-            const err = data.detail[0];
-            if (err.loc?.includes("password")) message = "Password must contain at least 8 characters";
-            else if (err.loc?.includes("email")) message = "Please enter a valid email address";
-            else message = err.msg || "Invalid input";
-          } else if (typeof data.detail === "string") {
-            message = data.detail;
-          }
-        } catch {}
-        throw new Error(message);
-      }
       setPending(true);
     } catch (err) {
-      setError(err.message);
+      let message = "Registration failed";
+      if (err.status === 422 && Array.isArray(err.detail)) {
+        const first = err.detail[0];
+        if (first.loc?.includes("password")) message = "Password must contain at least 8 characters";
+        else if (first.loc?.includes("email")) message = "Please enter a valid email address";
+        else message = first.msg || "Invalid input";
+      } else {
+        message = err.message || message;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }

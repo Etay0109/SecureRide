@@ -1,25 +1,21 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getStoredUser } from "../utils/auth";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function BlockedBanner() {
-  const [user, setUser] = useState(getStoredUser);
+  const { user } = useAuth();
   const [blocked, setBlocked] = useState(() => getStoredUser()?.blocked === true);
   const [reason, setReason] = useState(() => getStoredUser()?.blocked_reason || "");
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !user) return;
+    if (!localStorage.getItem("token") || !user) return;
 
-    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (r) => {
-        if (!r.ok) {
-          // Cannot determine server state — keep whatever is in localStorage as-is.
-          return;
-        }
-        const data = await r.json();
+    api("/auth/me")
+      .then((data) => {
         if (data.blocked) {
           setBlocked(true);
           setReason(data.blocked_reason || "");
@@ -59,15 +55,8 @@ export default function BlockedBanner() {
   }, []);
 
   useEffect(() => {
-    if (!blocked) return;
-    const interval = setInterval(() => {
-      if (!localStorage.getItem("token")) {
-        setBlocked(false);
-        setReason("");
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [blocked]);
+    if (!user) { setBlocked(false); setReason(""); }
+  }, [user]);
 
   useEffect(() => {
     if (!blocked) return;

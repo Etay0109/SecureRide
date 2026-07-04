@@ -1,19 +1,11 @@
 import { useState } from "react";
 import SectionHeading from "../ui/SectionHeading";
 import { getStoredUser } from "../../utils/auth";
+import { api } from "../../utils/api";
+import { inputCls } from "../../utils/constants";
+import DetailRow from "../ui/DetailRow";
 
-function DetailRow({ label, value }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
-        {label}
-      </p>
-      <p className="text-on-surface font-medium">{value}</p>
-    </div>
-  );
-}
-
-export default function AccountDetailsSection({ profile, token, onProfileUpdated, onUserUpdated }) {
+export default function AccountDetailsSection({ profile, onProfileUpdated, onUserUpdated }) {
   const [editingEmail, setEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailPassword, setEmailPassword] = useState("");
@@ -37,13 +29,10 @@ export default function AccountDetailsSection({ profile, token, onProfileUpdated
     if (!emailPassword) { setEmailError("Password is required to confirm this change."); return; }
     setEmailLoading(true);
     try {
-      const res = await fetch("/api/auth/email", {
+      const updated = await api("/auth/email", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ new_email: newEmail, password: emailPassword }),
+        body: { new_email: newEmail, password: emailPassword },
       });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || "Failed to update email"); }
-      const updated = await res.json();
       onProfileUpdated(updated);
       const storedUser = getStoredUser();
       if (storedUser) {
@@ -71,12 +60,10 @@ export default function AccountDetailsSection({ profile, token, onProfileUpdated
     if (newPassword.length < 8) { setPasswordError("New password must be at least 8 characters."); return; }
     setPasswordLoading(true);
     try {
-      const res = await fetch("/api/auth/password", {
+      await api("/auth/password", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        body: { current_password: currentPassword, new_password: newPassword },
       });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || "Failed to update password"); }
       setPasswordSuccess("Password updated successfully.");
       setEditingPassword(false);
       setCurrentPassword("");
@@ -89,7 +76,6 @@ export default function AccountDetailsSection({ profile, token, onProfileUpdated
     }
   };
 
-  const inputCls = "w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all";
   const btnCls = "px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-60";
 
   return (

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { api } from "../utils/api";
+import { timeAgo } from "../utils/chatFormatters";
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -22,30 +24,14 @@ export default function NotificationBell() {
   }, []);
 
   async function fetchUnread() {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!localStorage.getItem("token")) return;
     try {
-      const res = await fetch("/api/chat/unread", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await api("/chat/unread");
       setTotalUnread(data.total_unread);
       setNotifications(data.notifications);
     } catch {
       // silent
     }
-  }
-
-  function timeAgo(dateStr) {
-    if (!dateStr) return "";
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = Math.floor((now - then) / 1000);
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   function truncate(str, len) {
@@ -105,7 +91,7 @@ export default function NotificationBell() {
                         {n.sender_first_name} {n.sender_last_name}
                       </p>
                       <span className="text-[10px] text-on-surface-variant flex-shrink-0">
-                        {timeAgo(n.last_message_at)}
+                        {(() => { const t = timeAgo(n.last_message_at); return t === "now" ? "just now" : t + " ago"; })()}
                       </span>
                     </div>
                     <p className="text-xs text-on-surface-variant truncate mt-0.5">

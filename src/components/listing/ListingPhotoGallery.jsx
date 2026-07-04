@@ -1,8 +1,4 @@
-const VEHICLE_ICONS = {
-  "Electric Scooter": "electric_scooter",
-  "Bicycle": "pedal_bike",
-  "Electric Bicycle": "electric_moped",
-};
+import { VEHICLE_ICONS } from "../../utils/constants";
 
 export default function ListingPhotoGallery({ listing, photoIndex, onPhotoChange }) {
   const hasPhotos = listing?.photos?.length > 0;

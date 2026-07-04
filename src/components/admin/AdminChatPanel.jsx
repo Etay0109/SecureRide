@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { api } from "../../utils/api";
 
-export default function AdminChatPanel({ activeChat, chatUser, token, currentUserId, onClose }) {
+export default function AdminChatPanel({ activeChat, chatUser, currentUserId, onClose }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
@@ -23,10 +24,7 @@ export default function AdminChatPanel({ activeChat, chatUser, token, currentUse
   async function fetchMessages() {
     if (!activeChat) return;
     try {
-      const res = await fetch(`/api/chat/conversations/${activeChat}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setMessages(await res.json());
+      setMessages(await api(`/chat/conversations/${activeChat}/messages`));
     } catch { /* ignore */ }
   }
 
@@ -35,14 +33,11 @@ export default function AdminChatPanel({ activeChat, chatUser, token, currentUse
     if (!newMsg.trim() || !activeChat) return;
     setSendingMsg(true);
     try {
-      const res = await fetch(`/api/chat/conversations/${activeChat}/messages`, {
+      const sent = await api(`/chat/conversations/${activeChat}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: newMsg.trim() }),
+        body: { content: newMsg.trim() },
       });
-      if (!res.ok) throw new Error("Failed to send");
-      const newMsg = await res.json();
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => [...prev, sent]);
       setNewMsg("");
     } catch (err) { alert(err.message); }
     finally { setSendingMsg(false); }

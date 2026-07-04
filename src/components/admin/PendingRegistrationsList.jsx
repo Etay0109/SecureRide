@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { api } from "../../utils/api";
 
-export default function PendingRegistrationsList({ token, onImageView, onCountChange }) {
+export default function PendingRegistrationsList({ onImageView, onCountChange }) {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -13,14 +14,9 @@ export default function PendingRegistrationsList({ token, onImageView, onCountCh
 
   async function fetchPendingUsers() {
     try {
-      const res = await fetch("/api/admin/pending-registrations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingUsers(data);
-        onCountChange?.(data.length);
-      }
+      const data = await api("/admin/pending-registrations");
+      setPendingUsers(data);
+      onCountChange?.(data.length);
     } catch { /* ignore */ }
     finally { setPendingLoading(false); }
   }
@@ -28,11 +24,7 @@ export default function PendingRegistrationsList({ token, onImageView, onCountCh
   async function handleApprove(userId) {
     if (!confirm("Approve this registration?")) return;
     try {
-      const res = await fetch(`/api/admin/registrations/${userId}/approve`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to approve");
+      await api(`/admin/registrations/${userId}/approve`, { method: "PUT" });
       setPendingUsers((prev) => {
         const next = prev.filter((u) => u.id !== userId);
         onCountChange?.(next.length);
@@ -46,15 +38,10 @@ export default function PendingRegistrationsList({ token, onImageView, onCountCh
   async function handleRejectAction() {
     if (!rejectReason.trim()) { alert("Please enter a reason"); return; }
     const endpoint = rejectMode === "block"
-      ? `/api/admin/registrations/${rejectTarget}/permanently-block`
-      : `/api/admin/registrations/${rejectTarget}/request-changes`;
+      ? `/admin/registrations/${rejectTarget}/permanently-block`
+      : `/admin/registrations/${rejectTarget}/request-changes`;
     try {
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ reason: rejectReason.trim() }),
-      });
-      if (!res.ok) throw new Error("Failed to process rejection");
+      await api(endpoint, { method: "PUT", body: { reason: rejectReason.trim() } });
       setPendingUsers((prev) => {
         const next = prev.filter((u) => u.id !== rejectTarget);
         onCountChange?.(next.length);

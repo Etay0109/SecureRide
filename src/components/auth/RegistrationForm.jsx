@@ -1,6 +1,5 @@
 import { useRef } from "react";
-
-const inputCls = "w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all";
+import { inputClsRegister as inputCls } from "../../utils/constants";
 
 export default function RegistrationForm({ error, loading, onSubmit, onSwitchToLogin, onClose, idCardImage, setIdCardImage }) {
   const fileInputRef = useRef(null);
@@ -8,7 +7,8 @@ export default function RegistrationForm({ error, loading, onSubmit, onSwitchToL
   const handleIdCardFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { return; }
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 10 * 1024 * 1024) return;
     const reader = new FileReader();
     reader.onload = (ev) => setIdCardImage(ev.target.result);
     reader.readAsDataURL(file);

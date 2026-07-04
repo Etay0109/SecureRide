@@ -1,15 +1,6 @@
 import { useRef } from "react";
-
-function DetailRow({ label, value, mono, capitalize }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-on-surface-variant">{label}</span>
-      <span className={`text-sm font-medium text-on-surface ${mono ? "font-mono text-xs" : ""} ${capitalize ? "capitalize" : ""}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
+import { inputClsCompact as inputCls } from "../../utils/constants";
+import DetailRow from "../ui/DetailRow";
 
 function EditField({ label, children }) {
   return (
@@ -20,7 +11,6 @@ function EditField({ label, children }) {
   );
 }
 
-const inputCls = "w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface-container-low text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all";
 
 export default function ListingEditForm({ listing, editing, editData, setEditData, editPhotos, setEditPhotos, onPhotoFiles }) {
   const editPhotoRef = useRef(null);
@@ -32,11 +22,11 @@ export default function ListingEditForm({ listing, editing, editData, setEditDat
           <span className="material-symbols-outlined text-primary text-lg">edit</span>
           Edit Listing Details
         </h3>
-        <DetailRow label="Brand" value={listing.vehicle_brand || "—"} />
-        <DetailRow label="Model" value={listing.vehicle_model || "—"} />
-        <DetailRow label="Type" value={listing.vehicle_type || ""} capitalize />
-        <DetailRow label="Color" value={listing.vehicle_color || "—"} />
-        <DetailRow label="Frame Number" value={listing.frame_number} mono />
+        <DetailRow layout="side-by-side" label="Brand" value={listing.vehicle_brand || "—"} />
+        <DetailRow layout="side-by-side" label="Model" value={listing.vehicle_model || "—"} />
+        <DetailRow layout="side-by-side" label="Type" value={listing.vehicle_type || ""} capitalize />
+        <DetailRow layout="side-by-side" label="Color" value={listing.vehicle_color || "—"} />
+        <DetailRow layout="side-by-side" label="Frame Number" value={listing.frame_number} mono />
         <EditField label="Condition">
           <select value={editData.condition} onChange={(e) => setEditData({ ...editData, condition: e.target.value })} className={inputCls}>
             <option value="brand_new">Brand New</option>
@@ -89,15 +79,15 @@ export default function ListingEditForm({ listing, editing, editData, setEditDat
           <span className="material-symbols-outlined text-primary text-lg">info</span>
           Vehicle Details
         </h3>
-        <DetailRow label="Brand" value={listing.vehicle_brand || "—"} />
-        <DetailRow label="Model" value={listing.vehicle_model || "—"} />
-        <DetailRow label="Type" value={(listing.vehicle_type || "").replace(/-/g, " ")} capitalize />
-        <DetailRow label="Color" value={listing.vehicle_color || "—"} />
-        <DetailRow label="Frame Number" value={listing.frame_number} mono />
-        <DetailRow label="Condition" value={listing.condition === "brand_new" ? "Brand New" : "Used"} />
-        <DetailRow label="Owned for" value={listing.ownership_duration} />
-        {listing.city && <DetailRow label="City" value={listing.city} />}
-        {listing.address && <DetailRow label="Address" value={listing.address} />}
+        <DetailRow layout="side-by-side" label="Brand" value={listing.vehicle_brand || "—"} />
+        <DetailRow layout="side-by-side" label="Model" value={listing.vehicle_model || "—"} />
+        <DetailRow layout="side-by-side" label="Type" value={(listing.vehicle_type || "").replace(/-/g, " ")} capitalize />
+        <DetailRow layout="side-by-side" label="Color" value={listing.vehicle_color || "—"} />
+        <DetailRow layout="side-by-side" label="Frame Number" value={listing.frame_number} mono />
+        <DetailRow layout="side-by-side" label="Condition" value={listing.condition === "brand_new" ? "Brand New" : "Used"} />
+        <DetailRow layout="side-by-side" label="Owned for" value={listing.ownership_duration} />
+        {listing.city && <DetailRow layout="side-by-side" label="City" value={listing.city} />}
+        {listing.address && <DetailRow layout="side-by-side" label="Address" value={listing.address} />}
       </div>
       {listing.description && (
         <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 mb-6">

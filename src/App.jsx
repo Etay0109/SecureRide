@@ -9,12 +9,11 @@ import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import ChatWidget from "./components/ChatWidget";
 import BlockedBanner from "./components/BlockedBanner";
-import { getStoredUser } from "./utils/auth";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-  if (!token) return <Navigate to="/" replace />;
-  const user = getStoredUser();
+  const { user } = useAuth();
+  if (!localStorage.getItem("token")) return <Navigate to="/" replace />;
   if (user?.blocked) return <Navigate to="/" replace />;
   return children;
 }
@@ -22,18 +21,20 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/verify" element={<ProtectedRoute><VerifyOwnership /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/sell" element={<ProtectedRoute><SellPage /></ProtectedRoute>} />
-        <Route path="/buy" element={<ProtectedRoute><BuyPage /></ProtectedRoute>} />
-        <Route path="/listing/:id" element={<ListingDetailPage />} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-        <Route path="/about" element={<AboutPage />} />
-      </Routes>
-      <ChatWidget />
-      <BlockedBanner />
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/verify" element={<ProtectedRoute><VerifyOwnership /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/sell" element={<ProtectedRoute><SellPage /></ProtectedRoute>} />
+          <Route path="/buy" element={<ProtectedRoute><BuyPage /></ProtectedRoute>} />
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          <Route path="/about" element={<AboutPage />} />
+        </Routes>
+        <ChatWidget />
+        <BlockedBanner />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

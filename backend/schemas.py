@@ -1,6 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+_MAX_IMAGE_B64 = 14_000_000  # ~10 MB binary
 
 
 class RegisterRequest(BaseModel):
@@ -10,6 +13,13 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
     id_number: str
     id_card_image: str
+
+    @field_validator("id_card_image")
+    @classmethod
+    def id_card_image_size(cls, v: str) -> str:
+        if len(v) > _MAX_IMAGE_B64:
+            raise ValueError("ID card image must be under 10 MB")
+        return v
 
 
 class LoginRequest(BaseModel):
@@ -59,6 +69,13 @@ class ResubmitRegistrationRequest(BaseModel):
     id_number: str | None = None
     id_card_image: str | None = None
 
+    @field_validator("id_card_image")
+    @classmethod
+    def id_card_image_size(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > _MAX_IMAGE_B64:
+            raise ValueError("ID card image must be under 10 MB")
+        return v
+
 
 class UpdateEmailRequest(BaseModel):
     new_email: EmailStr
@@ -95,6 +112,16 @@ class CreateListingRequest(BaseModel):
     description: str | None = None
     photos: list[str] = []
 
+    @field_validator("photos")
+    @classmethod
+    def photos_limits(cls, v: list[str]) -> list[str]:
+        if len(v) > 8:
+            raise ValueError("A listing can have at most 8 photos")
+        for photo in v:
+            if len(photo) > _MAX_IMAGE_B64:
+                raise ValueError("Each photo must be under 10 MB")
+        return v
+
 
 class ListingResponse(BaseModel):
     id: str
@@ -124,6 +151,18 @@ class UpdateListingRequest(BaseModel):
     address: str | None = None
     description: str | None = None
     photos: list[str] | None = None
+
+    @field_validator("photos")
+    @classmethod
+    def photos_limits(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        if len(v) > 8:
+            raise ValueError("A listing can have at most 8 photos")
+        for photo in v:
+            if len(photo) > _MAX_IMAGE_B64:
+                raise ValueError("Each photo must be under 10 MB")
+        return v
 
 
 class CreateTradeRequest(BaseModel):
@@ -175,24 +214,7 @@ class TrackInteractionRequest(BaseModel):
     action_type: str
 
 
-class RecommendedListingResponse(BaseModel):
-    id: str
-    frame_number: str
-    seller_id: str
-    condition: str
-    ownership_duration: str
-    price: float
-    description: str | None
-    photos: list[str]
-    created_at: datetime
-    vehicle_brand: str | None = None
-    vehicle_model: str | None = None
-    vehicle_type: str | None = None
-    vehicle_color: str | None = None
-    city: str | None = None
-    address: str | None = None
-    seller_first_name: str | None = None
-    seller_last_name: str | None = None
+class RecommendedListingResponse(ListingResponse):
     score: float = 0.0
 
 

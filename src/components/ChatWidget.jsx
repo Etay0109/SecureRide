@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { getStoredUser } from "../utils/auth";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 import ConversationList from "./chat/ConversationList";
 import ActiveChat from "./chat/ActiveChat";
 
@@ -7,7 +8,7 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("list");
   const [activeId, setActiveId] = useState(null);
-  const [user, setUser] = useState(getStoredUser);
+  const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -24,11 +25,6 @@ export default function ChatWidget() {
   const messagesEndRef = useRef(null);
   const msgPollRef = useRef(null);
   const listPollRef = useRef(null);
-
-  useEffect(() => {
-    const interval = setInterval(() => setUser(getStoredUser()), 2000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     function handleOpenChat(e) {
@@ -64,35 +60,28 @@ export default function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const token = localStorage.getItem("token");
-
   async function loadConversations() {
-    const t = localStorage.getItem("token");
-    if (!t) return;
+    if (!localStorage.getItem("token")) return;
     try {
-      const res = await fetch("/api/chat/conversations", { headers: { Authorization: `Bearer ${t}` } });
-      if (res.ok) setConversations(await res.json());
+      setConversations(await api("/chat/conversations"));
     } catch {} finally { setLoadingList(false); }
   }
 
   async function loadActiveConversation() {
     try {
-      const res = await fetch(`/api/chat/conversations/${activeId}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) { backToList(); return; }
-      setActiveConv(await res.json());
+      setActiveConv(await api(`/chat/conversations/${activeId}`));
     } catch { backToList(); }
   }
 
   async function loadMessages() {
     try {
-      const res = await fetch(`/api/chat/conversations/${activeId}/messages`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setMessages(await res.json());
+      setMessages(await api(`/chat/conversations/${activeId}/messages`));
     } catch {} finally { setLoadingMessages(false); }
   }
 
   async function markAsRead() {
     try {
-      await fetch(`/api/chat/conversations/${activeId}/read`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+      await api(`/chat/conversations/${activeId}/read`, { method: "PUT" });
     } catch {}
   }
 
@@ -102,21 +91,14 @@ export default function ChatWidget() {
     setSendError("");
     setSending(true);
     try {
-      const res = await fetch(`/api/chat/conversations/${activeId}/messages`, {
+      const msg = await api(`/chat/conversations/${activeId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: newMessage.trim() }),
+        body: { content: newMessage.trim() },
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setSendError(data?.detail || "Failed to send");
-        return;
-      }
-      const msg = await res.json();
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
       loadConversations();
-    } catch { setSendError("Failed to send message. Please try again."); }
+    } catch (err) { setSendError(err.message || "Failed to send message. Please try again."); }
     finally { setSending(false); }
   }
 
@@ -125,8 +107,7 @@ export default function ChatWidget() {
     if (!confirm("Delete this chat and all messages?")) return;
     setDeletingId(convId);
     try {
-      const res = await fetch(`/api/chat/conversations/${convId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Failed to delete");
+      await api(`/chat/conversations/${convId}`, { method: "DELETE" });
       setConversations((prev) => prev.filter((c) => c.id !== convId));
       if (activeId === convId) backToList();
     } catch (err) { alert(err.message); }

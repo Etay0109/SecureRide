@@ -76,7 +76,7 @@ async def verify_ownership(
         await db.commit()
         raise HTTPException(
             status_code=403,
-            detail="BLOCKED: This vehicle is reported as stolen. Your account has been blocked pending investigation.",
+            detail={"code": "account_blocked", "reason": "This vehicle is reported as stolen. Your account has been blocked pending investigation."},
         )
 
     if existing:

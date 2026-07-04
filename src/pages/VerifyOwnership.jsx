@@ -1,33 +1,23 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import LoginModal from "../components/LoginModal";
-import RegisterModal from "../components/RegisterModal";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
-import { getStoredUser } from "../utils/auth";
 import StepProgress from "../components/verify/StepProgress";
 import VehicleTypeSelector from "../components/verify/VehicleTypeSelector";
 import VehicleDetailsFields from "../components/verify/VehicleDetailsFields";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function VerifyOwnership() {
+  const { user, openLogin } = useAuth();
   const [selectedType, setSelectedType] = useState("Electric Scooter");
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [user, setUser] = useState(getStoredUser);
   const [activeStep, setActiveStep] = useState(0);
-  const navigate = useNavigate();
-
-  const openLogin = () => { setShowRegister(false); setShowLogin(true); };
-  const openRegister = () => { setShowLogin(false); setShowRegister(true); };
-  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); setUser(null); navigate("/"); };
 
   const handleSubmit = async () => {
     setError("");
-    const token = localStorage.getItem("token");
-    if (!token) { setError("You must be logged in to verify ownership."); setShowLogin(true); return; }
+    if (!user) { openLogin(); return; }
     const form = document.getElementById("verify-form");
     const frameNumber = form.querySelector('[name="frame_number"]').value.trim();
     if (!frameNumber) { setError("Frame number is required."); return; }
@@ -37,33 +27,29 @@ export default function VerifyOwnership() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/verify/", {
+      await api("/verify/", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
+        body: {
           frame_number: frameNumber,
           vehicle_type: selectedType,
           brand: form.querySelector('[name="brand"]').value.trim() || null,
           model: form.querySelector('[name="model"]').value.trim() || null,
           color: form.querySelector('[name="color"]').value.trim() || null,
-        }),
+        },
       });
-      if (!res.ok) {
-        const data = await res.json();
-        if (res.status === 403 && data.detail?.startsWith("BLOCKED")) {
-          window.dispatchEvent(new CustomEvent("accountBlocked", { detail: { reason: data.detail } }));
-          throw new Error(data.detail);
-        }
-        throw new Error(data.detail || "Verification submission failed");
-      }
       setSuccess(true);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      if (err.status === 403 && err.detail?.code === "account_blocked") {
+        window.dispatchEvent(new CustomEvent("accountBlocked", { detail: { reason: err.detail.reason } }));
+      }
+      setError(err.message);
+    }
     finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      <PageHeader user={user} onLogout={handleLogout} onOpenLogin={openLogin} onOpenRegister={openRegister} activePage="verify" />
+      <PageHeader activePage="verify" />
       <main className="flex-1 w-full max-w-2xl mx-auto px-6 pt-28 pb-12">
         <h1 className="text-3xl font-extrabold tracking-tight mb-2">Verify Ownership</h1>
         <p className="text-on-surface-variant mb-10">Secure your assets by registering them with our precision verification system.</p>
@@ -104,12 +90,6 @@ export default function VerifyOwnership() {
         )}
       </main>
       <PageFooter />
-      {showLogin && (
-        <LoginModal onClose={() => setShowLogin(false)} onSwitchToRegister={openRegister} onLoginSuccess={(userData) => { setShowLogin(false); setError(""); setUser(userData); }} />
-      )}
-      {showRegister && (
-        <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={openLogin} onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }} />
-      )}
     </div>
   );
 }

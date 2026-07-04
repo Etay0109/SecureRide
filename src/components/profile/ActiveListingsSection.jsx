@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SectionHeading from "../ui/SectionHeading";
 import EmptyState from "../ui/EmptyState";
+import { api } from "../../utils/api";
 
 const LISTINGS_PER_PAGE = 5;
 
-export default function ActiveListingsSection({ token, navigate }) {
+export default function ActiveListingsSection() {
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [listingSearch, setListingSearch] = useState("");
   const [listingPage, setListingPage] = useState(1);
@@ -14,27 +17,15 @@ export default function ActiveListingsSection({ token, navigate }) {
   }, []);
 
   const fetchListings = async () => {
-    if (!token) return;
     try {
-      const res = await fetch("/api/sell/my-listings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setListings(await res.json());
+      setListings(await api("/sell/my-listings"));
     } catch { /* silently fail */ }
   };
 
   const handleDeleteListing = async (listingId) => {
     if (!confirm("Are you sure you want to delete this listing?")) return;
     try {
-      const res = await fetch(`/api/sell/listings/${listingId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        let msg = "Failed to delete listing";
-        try { const d = await res.json(); msg = d.detail || msg; } catch {}
-        throw new Error(msg);
-      }
+      await api(`/sell/listings/${listingId}`, { method: "DELETE" });
       setListings((prev) => prev.filter((l) => l.id !== listingId));
     } catch (err) {
       alert(err.message);

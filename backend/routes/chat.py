@@ -15,6 +15,25 @@ from routes.auth import require_active_user, require_auth
 router = APIRouter()
 
 
+async def _conversation_title(conv, db: AsyncSession) -> tuple[str, float]:
+    listing_title = ""
+    listing_price = 0.0
+    if conv.listing_id:
+        listing_res = await db.execute(
+            select(Listing, Vehicle)
+            .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
+            .where(Listing.id == conv.listing_id)
+        )
+        row = listing_res.one_or_none()
+        if row:
+            l, v = row
+            listing_title = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
+            listing_price = l.price
+    if conv.is_admin_chat:
+        listing_title = "Admin Support"
+    return listing_title, listing_price
+
+
 # Create a new conversation or return an existing one for a listing.
 @router.post("/conversations")
 async def start_conversation(
@@ -83,34 +102,52 @@ async def list_conversations(
     )
     conversations = result.scalars().all()
 
+    if not conversations:
+        return []
+
+    conv_ids = [c.id for c in conversations]
+
+    other_user_ids = list({c.seller_id if c.buyer_id == user_id else c.buyer_id for c in conversations})
+    other_users_res = await db.execute(select(User).where(User.id.in_(other_user_ids)))
+    other_users = {u.id: u for u in other_users_res.scalars().all()}
+
+    listing_ids = list({c.listing_id for c in conversations if c.listing_id})
+    listing_titles: dict[str, str] = {}
+    if listing_ids:
+        lr = await db.execute(
+            select(Listing, Vehicle)
+            .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
+            .where(Listing.id.in_(listing_ids))
+        )
+        for l, v in lr.all():
+            listing_titles[l.id] = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
+
+    last_at_subq = (
+        select(Message.conversation_id, func.max(Message.created_at).label("last_at"))
+        .where(Message.conversation_id.in_(conv_ids))
+        .group_by(Message.conversation_id)
+        .subquery()
+    )
+    last_msgs_res = await db.execute(
+        select(Message).join(
+            last_at_subq,
+            (Message.conversation_id == last_at_subq.c.conversation_id)
+            & (Message.created_at == last_at_subq.c.last_at),
+        )
+    )
+    last_msgs: dict[str, Message] = {}
+    for m in last_msgs_res.scalars().all():
+        if m.conversation_id not in last_msgs:
+            last_msgs[m.conversation_id] = m
+
     responses = []
     for conv in conversations:
         other_id = conv.seller_id if conv.buyer_id == user_id else conv.buyer_id
-        other_user = (await db.execute(select(User).where(User.id == other_id))).scalar_one_or_none()
-
-        listing_title = ""
-        if conv.listing_id:
-            listing_res = await db.execute(
-                select(Listing, Vehicle)
-                .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-                .where(Listing.id == conv.listing_id)
-            )
-            row = listing_res.one_or_none()
-            if row:
-                l, v = row
-                listing_title = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
-
+        other_user = other_users.get(other_id)
+        title = listing_titles.get(conv.listing_id, "") if conv.listing_id else ""
         if conv.is_admin_chat:
-            listing_title = "Admin Support"
-
-        last_msg_res = await db.execute(
-            select(Message)
-            .where(Message.conversation_id == conv.id)
-            .order_by(Message.created_at.desc())
-            .limit(1)
-        )
-        last_msg = last_msg_res.scalar_one_or_none()
-
+            title = "Admin Support"
+        last_msg = last_msgs.get(conv.id)
         responses.append(ConversationResponse(
             id=conv.id,
             listing_id=conv.listing_id or "",
@@ -119,7 +156,7 @@ async def list_conversations(
             created_at=conv.created_at,
             other_user_first_name=other_user.first_name if other_user else None,
             other_user_last_name=other_user.last_name if other_user else None,
-            listing_title=listing_title,
+            listing_title=title,
             last_message=last_msg.content if last_msg else None,
             last_message_at=last_msg.created_at if last_msg else None,
         ))
@@ -147,22 +184,7 @@ async def get_conversation(
     other_id = conv.seller_id if conv.buyer_id == user_id else conv.buyer_id
     other_user = (await db.execute(select(User).where(User.id == other_id))).scalar_one_or_none()
 
-    listing_title = ""
-    listing_price = 0
-    if conv.listing_id:
-        listing_res = await db.execute(
-            select(Listing, Vehicle)
-            .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-            .where(Listing.id == conv.listing_id)
-        )
-        row = listing_res.one_or_none()
-        if row:
-            l, v = row
-            listing_title = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
-            listing_price = l.price
-
-    if conv.is_admin_chat:
-        listing_title = "Admin Support"
+    listing_title, listing_price = await _conversation_title(conv, db)
 
     return {
         "id": conv.id,
@@ -271,69 +293,72 @@ async def get_unread_notifications(
     )
     conversations = convs_result.scalars().all()
 
-    notifications = []
-    total_unread = 0
+    if not conversations:
+        return {"total_unread": 0, "notifications": []}
 
+    conv_ids = [c.id for c in conversations]
+
+    # Batch: all messages from others in these conversations
+    msgs_res = await db.execute(
+        select(Message)
+        .where(Message.conversation_id.in_(conv_ids), Message.sender_id != user_id)
+        .order_by(Message.created_at.asc())
+    )
+    msgs_by_conv: dict[str, list] = {}
+    for m in msgs_res.scalars().all():
+        msgs_by_conv.setdefault(m.conversation_id, []).append(m)
+
+    # Compute unread per conversation
+    unread_convs: list[tuple] = []
     for conv in conversations:
         is_buyer = conv.buyer_id == user_id
         last_read = conv.buyer_last_read_at if is_buyer else conv.seller_last_read_at
+        conv_msgs = msgs_by_conv.get(conv.id, [])
+        unread = [m for m in conv_msgs if last_read is None or m.created_at > last_read]
+        if unread:
+            last_msg = conv_msgs[-1]  # most recent from other party (sorted asc)
+            unread_convs.append((conv, len(unread), last_msg))
 
-        unread_filter = [
-            Message.conversation_id == conv.id,
-            Message.sender_id != user_id,
-        ]
-        if last_read:
-            unread_filter.append(Message.created_at > last_read)
+    if not unread_convs:
+        return {"total_unread": 0, "notifications": []}
 
-        count_res = await db.execute(
-            select(func.count()).select_from(Message).where(*unread_filter)
+    # Batch: other_users and listing titles for unread conversations only
+    other_user_ids = list({c.seller_id if c.buyer_id == user_id else c.buyer_id for c, _, _ in unread_convs})
+    users_res = await db.execute(select(User).where(User.id.in_(other_user_ids)))
+    other_users = {u.id: u for u in users_res.scalars().all()}
+
+    unread_listing_ids = list({c.listing_id for c, _, _ in unread_convs if c.listing_id})
+    listing_titles: dict[str, str] = {}
+    if unread_listing_ids:
+        lr = await db.execute(
+            select(Listing, Vehicle)
+            .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
+            .where(Listing.id.in_(unread_listing_ids))
         )
-        unread_count = count_res.scalar()
+        for l, v in lr.all():
+            listing_titles[l.id] = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
 
-        if unread_count == 0:
-            continue
-
+    notifications = []
+    total_unread = 0
+    for conv, unread_count, last_msg in unread_convs:
         total_unread += unread_count
-
-        last_msg_res = await db.execute(
-            select(Message)
-            .where(Message.conversation_id == conv.id, Message.sender_id != user_id)
-            .order_by(Message.created_at.desc())
-            .limit(1)
-        )
-        last_msg = last_msg_res.scalar_one_or_none()
-
-        other_id = conv.seller_id if is_buyer else conv.buyer_id
-        other_user = (await db.execute(select(User).where(User.id == other_id))).scalar_one_or_none()
-
-        listing_title = ""
-        if conv.listing_id:
-            listing_res = await db.execute(
-                select(Listing, Vehicle)
-                .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-                .where(Listing.id == conv.listing_id)
-            )
-            row = listing_res.one_or_none()
-            if row:
-                l, v = row
-                listing_title = f"{v.brand or 'Unknown'} {v.model or ''}".strip()
-
+        other_id = conv.seller_id if conv.buyer_id == user_id else conv.buyer_id
+        other_user = other_users.get(other_id)
+        title = listing_titles.get(conv.listing_id, "") if conv.listing_id else ""
         if conv.is_admin_chat:
-            listing_title = "Admin Support"
-
+            title = "Admin Support"
         notifications.append({
             "conversation_id": conv.id,
             "listing_id": conv.listing_id or "",
-            "listing_title": listing_title,
+            "listing_title": title,
             "sender_first_name": other_user.first_name if other_user else "Unknown",
             "sender_last_name": other_user.last_name if other_user else "",
-            "last_message": last_msg.content if last_msg else "",
-            "last_message_at": last_msg.created_at.isoformat() if last_msg else None,
+            "last_message": last_msg.content,
+            "last_message_at": last_msg.created_at.isoformat(),
             "unread_count": unread_count,
         })
 
     notifications.sort(key=lambda n: n["last_message_at"] or "", reverse=True)
-
     return {"total_unread": total_unread, "notifications": notifications}
 
 

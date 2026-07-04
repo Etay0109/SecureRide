@@ -1,16 +1,13 @@
 import { useState } from "react";
 import SectionHeading from "../ui/SectionHeading";
 import EmptyState from "../ui/EmptyState";
+import { api } from "../../utils/api";
 
-const VEHICLE_ICONS = {
-  "Electric Scooter": "electric_scooter",
-  "Bicycle": "pedal_bike",
-  "Electric Bicycle": "electric_moped",
-};
+import { VEHICLE_ICONS } from "../../utils/constants";
 
 const VEHICLES_PER_PAGE = 5;
 
-export default function VehiclesSection({ token, vehicles, onVehiclesChange }) {
+export default function VehiclesSection({ vehicles, onVehiclesChange }) {
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [vehiclePage, setVehiclePage] = useState(1);
 
@@ -18,15 +15,7 @@ export default function VehiclesSection({ token, vehicles, onVehiclesChange }) {
     const message = currentlyStolen ? "Mark this vehicle as found?" : "Are you sure you want to report this vehicle as stolen?";
     if (!confirm(message)) return;
     try {
-      const res = await fetch(`/api/verify/${encodeURIComponent(frameNumber)}/toggle-stolen`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        let msg = "Failed to update vehicle status";
-        try { const d = await res.json(); msg = d.detail || msg; } catch {}
-        throw new Error(msg);
-      }
+      await api(`/verify/${encodeURIComponent(frameNumber)}/toggle-stolen`, { method: "PUT" });
       onVehiclesChange();
     } catch (err) {
       alert(err.message);
@@ -36,15 +25,7 @@ export default function VehiclesSection({ token, vehicles, onVehiclesChange }) {
   const handleDeleteVehicle = async (frameNumber) => {
     if (!confirm("Are you sure you want to delete this vehicle? This cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/verify/${encodeURIComponent(frameNumber)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        let msg = "Failed to delete vehicle";
-        try { const d = await res.json(); msg = d.detail || msg; } catch {}
-        throw new Error(msg);
-      }
+      await api(`/verify/${encodeURIComponent(frameNumber)}`, { method: "DELETE" });
       onVehiclesChange();
     } catch (err) {
       alert(err.message);

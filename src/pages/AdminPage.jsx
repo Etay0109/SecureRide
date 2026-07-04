@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import NotificationBell from "../components/NotificationBell";
-import { getStoredUser } from "../utils/auth";
+import { useNavigate } from "react-router-dom";
+import PageHeader from "../components/ui/PageHeader";
 import PendingRegistrationsList from "../components/admin/PendingRegistrationsList";
 import BlockedUsersList from "../components/admin/BlockedUsersList";
 import AdminChatPanel from "../components/admin/AdminChatPanel";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const [user] = useState(getStoredUser);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("pending");
   const [imageModal, setImageModal] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
   const [chatUser, setChatUser] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [blockedCount, setBlockedCount] = useState(0);
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     if (!user?.is_admin) navigate("/", { replace: true });
@@ -24,12 +24,7 @@ export default function AdminPage() {
   async function handleOpenChat(blockedUser) {
     setChatUser(blockedUser);
     try {
-      const res = await fetch(`/api/admin/chat/${blockedUser.id}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to start chat");
-      const { conversation_id } = await res.json();
+      const { conversation_id } = await api(`/admin/chat/${blockedUser.id}`, { method: "POST" });
       setActiveChat(conversation_id);
     } catch (err) { alert(err.message); }
   }
@@ -38,29 +33,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg shadow-[0_20px_40px_rgba(25,28,29,0.05)]">
-        <div className="flex justify-between items-center px-8 h-20 max-w-screen-2xl mx-auto">
-          <Link to="/" className="text-2xl font-black tracking-tighter text-slate-900">Secure Ride</Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight">Home</Link>
-            <Link to="/buy" className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight">Buy</Link>
-            <Link to="/sell" className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight">Sell</Link>
-            <Link to="/verify" className="text-slate-500 hover:text-slate-900 transition-colors tracking-tight">Verify Ownership</Link>
-            <Link to="/admin" className="text-primary font-semibold tracking-tight">Admin</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/profile" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center group-hover:ring-2 group-hover:ring-red-300 transition-all">
-                <span className="material-symbols-outlined text-red-600 text-lg">admin_panel_settings</span>
-              </div>
-              <span className="text-sm font-semibold text-on-surface hidden sm:inline group-hover:text-primary transition-colors">
-                {user.first_name} {user.last_name}
-              </span>
-            </Link>
-            <NotificationBell />
-          </div>
-        </div>
-      </nav>
+      <PageHeader activePage="admin" />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-28 pb-16">
         <div className="flex items-center gap-4 mb-8">
@@ -93,13 +66,12 @@ export default function AdminPage() {
         </div>
 
         {activeTab === "pending" && (
-          <PendingRegistrationsList token={token} onImageView={setImageModal} onCountChange={setPendingCount} />
+          <PendingRegistrationsList onImageView={setImageModal} onCountChange={setPendingCount} />
         )}
         {activeTab === "blocked" && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-2">
               <BlockedUsersList
-                token={token}
                 activeChatUserId={chatUser?.id}
                 onSelectUser={handleOpenChat}
                 onCountChange={setBlockedCount}
@@ -113,7 +85,6 @@ export default function AdminPage() {
                 <AdminChatPanel
                   activeChat={activeChat}
                   chatUser={chatUser}
-                  token={token}
                   currentUserId={user?.id}
                   onClose={() => { setActiveChat(null); setChatUser(null); }}
                 />

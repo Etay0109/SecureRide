@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import SectionHeading from "../ui/SectionHeading";
 import EmptyState from "../ui/EmptyState";
 import TradeCard from "../trades/TradeCard";
+import { api } from "../../utils/api";
 
 function CompletedTradeRow({ trade, role }) {
   const isBuyer = role === "buyer";
@@ -29,18 +30,14 @@ function CompletedTradeRow({ trade, role }) {
   );
 }
 
-export default function TradesHistorySection({ user, token, onVehicleTransferred }) {
+export default function TradesHistorySection({ user, onVehicleTransferred }) {
   const [trades, setTrades] = useState([]);
 
   const fetchTrades = useCallback(async () => {
-    if (!token) return;
     try {
-      const res = await fetch("/api/trades/my", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setTrades(await res.json());
+      setTrades(await api("/trades/my"));
     } catch { /* silently fail */ }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchTrades();
@@ -48,14 +45,7 @@ export default function TradesHistorySection({ user, token, onVehicleTransferred
 
   const handleTradeAction = async (tradeId, action) => {
     try {
-      const res = await fetch(`/api/trades/${tradeId}/${action}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        throw new Error(d?.detail || `Failed to ${action}`);
-      }
+      await api(`/trades/${tradeId}/${action}`, { method: "PUT" });
       await fetchTrades();
       if (action === "confirm-transfer" || action === "confirm-receipt") {
         onVehicleTransferred();

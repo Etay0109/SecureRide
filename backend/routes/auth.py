@@ -124,7 +124,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         reason = user.blocked_reason or "No reason provided"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"__CHANGES_REQUESTED__|{reason}",
+            detail={"code": "changes_requested", "reason": reason},
         )
 
     token = create_access_token({"sub": user.id, "email": user.email, "is_admin": user.is_admin})
@@ -132,52 +132,6 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         access_token=token,
         user=UserResponse.model_validate(user),
     )
-
-# Extract the authenticated user's ID from the JWT token.
-async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> str:
-    return _decode_token(credentials)
-
-
-# Retrieve the authenticated user without checking account status.
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """Return the User object without checking blocked status."""
-    user_id = _decode_token(credentials)
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
-
-
-# Ensure the authenticated user is approved and not blocked.
-async def require_active_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """Return the full User object; raises 403 if the account is blocked."""
-    user_id = _decode_token(credentials)
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    if user.blocked:
-        raise HTTPException(
-            status_code=403,
-            detail=user.blocked_reason or "Your account has been blocked. Contact admin.",
-        )
-    if user.registration_status != "approved":
-        raise HTTPException(
-            status_code=403,
-            detail="Your account has not been approved yet.",
-        )
-    return user
-
 
 # Authenticates the user by JWT without checking blocked or registration status.
 async def require_auth(
@@ -190,6 +144,23 @@ async def require_auth(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
+# Ensure the authenticated user is approved and not blocked.
+async def require_active_user(
+    user: User = Depends(require_auth),
+) -> User:
+    if user.blocked:
+        raise HTTPException(
+            status_code=403,
+            detail=user.blocked_reason or "Your account has been blocked. Contact admin.",
+        )
+    if user.registration_status != "approved":
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has not been approved yet.",
+        )
     return user
 
 

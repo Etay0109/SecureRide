@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -131,18 +131,6 @@ async def list_pending_registrations(
         }
         for u in users
     ]
-
-
-# Return the number of pending registration requests.
-@router.get("/pending-count")
-async def pending_registration_count(
-    admin: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(func.count()).select_from(User).where(User.registration_status == "pending")
-    )
-    return {"count": result.scalar()}
 
 
 # Approve a pending user registration.

@@ -1,32 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import LoginModal from "../components/LoginModal";
-import RegisterModal from "../components/RegisterModal";
 import PageHeader from "../components/ui/PageHeader";
-import { getStoredUser } from "../utils/auth";
 import ProtocolSection from "../components/landing/ProtocolSection";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-  const [user, setUser] = useState(getStoredUser);
+  const { user, openRegister } = useAuth();
   const [vehicleCount, setVehicleCount] = useState(0);
 
   useEffect(() => {
-    fetch("/api/stats")
-      .then((res) => res.json())
-      .then((data) => setVehicleCount(data.vehicles_verified ?? 0))
+    api("/stats")
+      .then((data) => setVehicleCount(data?.vehicles_verified ?? 0))
       .catch(() => setVehicleCount(0));
   }, []);
 
-  const openLogin = () => { setShowRegister(false); setShowLogin(true); };
-  const openRegister = () => { setShowLogin(false); setShowRegister(true); };
-  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); setUser(null); };
-
   return (
     <>
-      <PageHeader user={user} onLogout={handleLogout} onOpenLogin={openLogin} onOpenRegister={openRegister} activePage="home" />
+      <PageHeader activePage="home" />
       <main className="pt-20 bg-surface text-on-surface antialiased">
         <section className="relative min-h-[920px] flex items-start overflow-hidden bg-surface pt-12 lg:pt-16">
           <div className="max-w-screen-2xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
@@ -126,12 +118,6 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {showLogin && (
-        <LoginModal onClose={() => setShowLogin(false)} onSwitchToRegister={openRegister} onLoginSuccess={(userData) => { setShowLogin(false); setUser(userData); }} />
-      )}
-      {showRegister && (
-        <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={openLogin} onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }} />
-      )}
     </>
   );
 }

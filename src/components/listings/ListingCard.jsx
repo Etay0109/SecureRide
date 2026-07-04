@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const VEHICLE_ICONS = {
-  "Electric Scooter": "electric_scooter",
-  "Bicycle": "pedal_bike",
-  "Electric Bicycle": "electric_moped",
-};
+import { VEHICLE_ICONS } from "../../utils/constants";
 
 export default function ListingCard({ listing }) {
   const navigate = useNavigate();

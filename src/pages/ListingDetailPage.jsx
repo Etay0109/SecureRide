@@ -1,23 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import LoginModal from "../components/LoginModal";
-import RegisterModal from "../components/RegisterModal";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
-import { getStoredUser } from "../utils/auth";
 import ListingPhotoGallery from "../components/listing/ListingPhotoGallery";
 import ListingDetailActions from "../components/listing/ListingDetailActions";
 import ListingEditForm from "../components/listing/ListingEditForm";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState(getStoredUser);
+  const { user, openLogin } = useAuth();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
@@ -28,35 +25,26 @@ export default function ListingDetailPage() {
   const [buyingLoading, setBuyingLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/sell/listings/${id}`)
-      .then((res) => { if (!res.ok) throw new Error("Listing not found"); return res.json(); })
+    api(`/sell/listings/${id}`)
       .then((data) => setListing(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !id) return;
-    fetch(`/api/trades/listing/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : []))
+    if (!localStorage.getItem("token") || !id) return;
+    api(`/trades/listing/${id}`)
       .then((data) => setTrades(data))
       .catch(() => {});
   }, [id, user]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !id) return;
-    fetch("/api/recommendations/track", {
+    if (!localStorage.getItem("token") || !id) return;
+    api("/recommendations/track", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listing_id: id, action_type: "view" }),
+      body: { listing_id: id, action_type: "view" },
     }).catch(() => {});
   }, [id]);
-
-  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); setUser(null); navigate("/"); };
-  const openLogin = () => { setShowRegister(false); setShowLogin(true); };
-  const openRegister = () => { setShowLogin(false); setShowRegister(true); };
 
   function startEditing() {
     setEditData({ condition: listing.condition, ownership_duration: listing.ownership_duration, price: listing.price, city: listing.city || "", address: listing.address || "", description: listing.description || "" });
@@ -69,14 +57,7 @@ export default function ListingDetailPage() {
   async function handleSaveEdit() {
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sell/listings/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...editData, photos: editPhotos }),
-      });
-      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.detail || "Failed to save"); }
-      setListing(await res.json());
+      setListing(await api(`/sell/listings/${id}`, { method: "PUT", body: { ...editData, photos: editPhotos } }));
       setEditing(false);
     } catch (err) { alert(err.message); }
     finally { setSaving(false); }
@@ -86,9 +67,7 @@ export default function ListingDetailPage() {
     if (!confirm("Are you sure you want to delete this listing? This cannot be undone.")) return;
     setDeleting(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sell/listings/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.detail || "Failed to delete"); }
+      await api(`/sell/listings/${id}`, { method: "DELETE" });
       navigate("/buy", { replace: true });
     } catch (err) { alert(err.message); setDeleting(false); }
   }
@@ -96,24 +75,18 @@ export default function ListingDetailPage() {
   function handleEditPhotoFiles(files) {
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
+      if (file.size > 10 * 1024 * 1024) return;
       const reader = new FileReader();
-      reader.onload = (e) => setEditPhotos((prev) => [...prev, e.target.result]);
+      reader.onload = (e) => setEditPhotos((prev) => prev.length >= 8 ? prev : [...prev, e.target.result]);
       reader.readAsDataURL(file);
     });
   }
 
   async function handleBuyNow() {
-    if (!user) { setShowLogin(true); return; }
+    if (!user) { openLogin(); return; }
     setBuyingLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/trades/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing_id: listing.id }),
-      });
-      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.detail || "Failed to create trade request"); }
-      const newTrade = await res.json();
+      const newTrade = await api("/trades/", { method: "POST", body: { listing_id: listing.id } });
       setTrades((prev) => [newTrade, ...prev]);
     } catch (err) { alert(err.message); }
     finally { setBuyingLoading(false); }
@@ -121,26 +94,16 @@ export default function ListingDetailPage() {
 
   async function handleTradeAction(tradeId, action) {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/trades/${tradeId}/${action}`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.detail || `Failed to ${action}`); }
-      const updated = await res.json();
+      const updated = await api(`/trades/${tradeId}/${action}`, { method: "PUT" });
       if (updated.status === "completed") { navigate("/profile", { replace: true }); return; }
       setTrades((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) { alert(err.message); }
   }
 
   async function handleOpenChat() {
-    if (!user) { setShowLogin(true); return; }
+    if (!user) { openLogin(); return; }
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing_id: listing.id }),
-      });
-      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.detail || "Failed to start conversation"); }
-      const { id: convId } = await res.json();
+      const { id: convId } = await api("/chat/conversations", { method: "POST", body: { listing_id: listing.id } });
       window.dispatchEvent(new CustomEvent("openChat", { detail: { conversationId: convId } }));
     } catch (err) { alert(err.message); }
   }
@@ -152,7 +115,7 @@ export default function ListingDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      <PageHeader user={user} onLogout={handleLogout} onOpenLogin={openLogin} onOpenRegister={openRegister} />
+      <PageHeader />
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 pt-28 pb-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-primary font-semibold mb-6 hover:underline">
           <span className="material-symbols-outlined text-base">arrow_back</span>Back to listings
@@ -189,14 +152,14 @@ export default function ListingDetailPage() {
                     <div className="text-4xl font-black text-primary mb-6">₪{listing.price.toLocaleString()}</div>
                   )}
                   <ListingDetailActions
-                    isOwnListing={isOwnListing} user={user} listing={listing} editing={editing}
+                    isOwnListing={isOwnListing} editing={editing}
                     deleting={deleting} saving={saving} buyingLoading={buyingLoading}
                     myActiveTrade={myActiveTrade} pendingTradesForSeller={pendingTradesForSeller}
                     acceptedTradeForSeller={acceptedTradeForSeller}
                     onStartEditing={startEditing} onCancelEditing={cancelEditing}
                     onSaveEdit={handleSaveEdit} onDelete={handleDelete}
                     onBuyNow={handleBuyNow} onTradeAction={handleTradeAction}
-                    onOpenLogin={() => setShowLogin(true)} onOpenChat={handleOpenChat}
+                    onOpenChat={handleOpenChat}
                   />
                   <ListingEditForm
                     listing={listing} editing={editing} editData={editData} setEditData={setEditData}
@@ -223,12 +186,6 @@ export default function ListingDetailPage() {
         )}
       </main>
       <PageFooter />
-      {showLogin && (
-        <LoginModal onClose={() => setShowLogin(false)} onSwitchToRegister={openRegister} onLoginSuccess={(userData) => { setShowLogin(false); setUser(userData); }} />
-      )}
-      {showRegister && (
-        <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={openLogin} onRegisterSuccess={(userData) => { setShowRegister(false); setUser(userData); }} />
-      )}
     </div>
   );
 }

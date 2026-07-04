@@ -1,45 +1,14 @@
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import Listing, Vehicle, User, Conversation, Message
-from schemas import CreateListingRequest, UpdateListingRequest, ListingResponse
+from schemas import CreateListingRequest, UpdateListingRequest
 from routes.auth import require_active_user
+from serializers import listing_to_response
 
 router = APIRouter()
-
-
-# Convert a listing database object into an API response.
-def listing_to_response(listing: Listing, vehicle: Vehicle, seller: User | None = None) -> ListingResponse:
-    photos = []
-    if listing.photos:
-        try:
-            photos = json.loads(listing.photos)
-        except (json.JSONDecodeError, TypeError):
-            photos = []
-
-    return ListingResponse(
-        id=listing.id,
-        frame_number=listing.frame_number,
-        seller_id=listing.seller_id,
-        condition=listing.condition,
-        ownership_duration=listing.ownership_duration,
-        price=listing.price,
-        city=listing.city,
-        address=listing.address,
-        description=listing.description,
-        photos=photos,
-        created_at=listing.created_at,
-        vehicle_brand=vehicle.brand,
-        vehicle_model=vehicle.model,
-        vehicle_type=vehicle.vehicle_type,
-        vehicle_color=vehicle.color,
-        seller_first_name=seller.first_name if seller else None,
-        seller_last_name=seller.last_name if seller else None,
-    )
 
 
 # Create a new listing for one of the user's verified vehicles.

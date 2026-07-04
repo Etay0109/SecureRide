@@ -1,4 +1,3 @@
-import json
 import math
 from collections import defaultdict
 
@@ -8,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import UserInteraction, Listing, Vehicle, User
-from schemas import TrackInteractionRequest, RecommendedListingResponse
+from schemas import TrackInteractionRequest
 from routes.auth import require_active_user
+from serializers import listing_to_response
 
 router = APIRouter()
 
@@ -95,36 +95,6 @@ def _weighted_average_vector(vectors_with_weights: list[tuple[list[float], float
         result = [x / total_weight for x in result]
     return result
 
-
-# Convert a listing into a recommended listing API response.
-def _listing_to_recommended(listing, vehicle, seller, score: float) -> RecommendedListingResponse:
-    photos = []
-    if listing.photos:
-        try:
-            photos = json.loads(listing.photos)
-        except (json.JSONDecodeError, TypeError):
-            photos = []
-
-    return RecommendedListingResponse(
-        id=listing.id,
-        frame_number=listing.frame_number,
-        seller_id=listing.seller_id,
-        condition=listing.condition,
-        ownership_duration=listing.ownership_duration,
-        price=listing.price,
-        city=listing.city,
-        address=listing.address,
-        description=listing.description,
-        photos=photos,
-        created_at=listing.created_at,
-        vehicle_brand=vehicle.brand,
-        vehicle_model=vehicle.model,
-        vehicle_type=vehicle.vehicle_type,
-        vehicle_color=vehicle.color,
-        seller_first_name=seller.first_name if seller else None,
-        seller_last_name=seller.last_name if seller else None,
-        score=round(score, 4),
-    )
 
 
 # Delete all recommendation interactions for the authenticated user.
@@ -221,7 +191,7 @@ async def get_recommendations(
         scored.sort(key=lambda x: x[0], reverse=True)
 
         return [
-            _listing_to_recommended(listing, vehicle, seller, 0.0)
+            listing_to_response(listing, vehicle, seller, score=0.0)
             for _, listing, vehicle, seller in scored[:limit]
         ]
 
@@ -242,7 +212,7 @@ async def get_recommendations(
         results = []
         for row in all_rows[:limit]:
             listing, vehicle, seller = row
-            results.append(_listing_to_recommended(listing, vehicle, seller, 0.0))
+            results.append(listing_to_response(listing, vehicle, seller, score=0.0))
         return results
 
     user_vector = _weighted_average_vector(vectors_with_weights)
@@ -257,6 +227,6 @@ async def get_recommendations(
     scored_listings.sort(key=lambda x: x[0], reverse=True)
 
     return [
-        _listing_to_recommended(listing, vehicle, seller, score)
+        listing_to_response(listing, vehicle, seller, score=score)
         for score, listing, vehicle, seller in scored_listings[:limit]
     ]

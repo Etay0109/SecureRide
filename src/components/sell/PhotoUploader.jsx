@@ -6,8 +6,9 @@ export default function PhotoUploader({ photos, setPhotos }) {
   const handleFiles = (files) => {
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
+      if (file.size > 10 * 1024 * 1024) return;
       const reader = new FileReader();
-      reader.onload = (e) => setPhotos((prev) => [...prev, e.target.result]);
+      reader.onload = (e) => setPhotos((prev) => prev.length >= 8 ? prev : [...prev, e.target.result]);
       reader.readAsDataURL(file);
     });
   };

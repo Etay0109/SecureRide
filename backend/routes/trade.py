@@ -11,6 +11,78 @@ from routes.auth import require_active_user
 
 router = APIRouter()
 
+
+async def _get_trade_or_403(
+    db: AsyncSession,
+    trade_id: str,
+    user_id: str,
+    *,
+    role: str | None = None,
+    allowed_statuses: str | list[str],
+    role_error: str,
+    status_error: str,
+) -> "Trade":
+    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
+    if not trade:
+        raise HTTPException(status_code=404, detail="Trade not found")
+    if role == "seller":
+        if trade.seller_id != user_id:
+            raise HTTPException(status_code=403, detail=role_error)
+    elif role == "buyer":
+        if trade.buyer_id != user_id:
+            raise HTTPException(status_code=403, detail=role_error)
+    else:
+        if trade.buyer_id != user_id and trade.seller_id != user_id:
+            raise HTTPException(status_code=403, detail=role_error)
+    if isinstance(allowed_statuses, str):
+        if trade.status != allowed_statuses:
+            raise HTTPException(status_code=400, detail=status_error)
+    else:
+        if trade.status not in allowed_statuses:
+            raise HTTPException(status_code=400, detail=status_error)
+    return trade
+
+
+async def trades_to_responses(trades: list["Trade"], db: AsyncSession) -> list[TradeResponse]:
+    if not trades:
+        return []
+    frame_numbers = list({t.frame_number for t in trades if t.frame_number})
+    user_ids = list({t.buyer_id for t in trades} | {t.seller_id for t in trades})
+    vehicles: dict = {}
+    if frame_numbers:
+        veh_res = await db.execute(select(Vehicle).where(Vehicle.frame_number.in_(frame_numbers)))
+        vehicles = {v.frame_number: v for v in veh_res.scalars().all()}
+    users_res = await db.execute(select(User).where(User.id.in_(user_ids)))
+    users: dict = {u.id: u for u in users_res.scalars().all()}
+    result = []
+    for trade in trades:
+        vehicle = vehicles.get(trade.frame_number) if trade.frame_number else None
+        buyer = users.get(trade.buyer_id)
+        seller = users.get(trade.seller_id)
+        result.append(TradeResponse(
+            id=trade.id,
+            listing_id=trade.listing_id,
+            buyer_id=trade.buyer_id,
+            seller_id=trade.seller_id,
+            frame_number=trade.frame_number or trade.vehicle_frame_number_snapshot,
+            price=trade.price,
+            status=trade.status,
+            seller_confirmed=trade.seller_confirmed,
+            buyer_confirmed=trade.buyer_confirmed,
+            created_at=trade.created_at,
+            completed_at=trade.completed_at,
+            vehicle_brand=(vehicle.brand if vehicle else None) or trade.vehicle_brand_snapshot,
+            vehicle_model=(vehicle.model if vehicle else None) or trade.vehicle_model_snapshot,
+            vehicle_type=(vehicle.vehicle_type if vehicle else None) or trade.vehicle_type_snapshot,
+            vehicle_color=(vehicle.color if vehicle else None) or trade.vehicle_color_snapshot,
+            buyer_first_name=buyer.first_name if buyer else None,
+            buyer_last_name=buyer.last_name if buyer else None,
+            seller_first_name=seller.first_name if seller else None,
+            seller_last_name=seller.last_name if seller else None,
+        ))
+    return result
+
+
 # Convert a Trade database object into an API response.
 async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
     vehicle = None
@@ -105,7 +177,7 @@ async def my_trades(
         .order_by(Trade.created_at.desc())
     )
     trades = result.scalars().all()
-    return [await trade_to_response(t, db) for t in trades]
+    return await trades_to_responses(trades, db)
 
 
 # Return active trades for a specific listing.
@@ -125,7 +197,7 @@ async def trades_for_listing(
         )
     )
     trades = result.scalars().all()
-    return [await trade_to_response(t, db) for t in trades]
+    return await trades_to_responses(trades, db)
 
 
 # Allow the seller to accept a pending trade request.
@@ -136,13 +208,7 @@ async def accept_trade(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.seller_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the seller can accept")
-    if trade.status != "pending_seller":
-        raise HTTPException(status_code=400, detail="Trade is not in pending state")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role="seller", allowed_statuses="pending_seller", role_error="Only the seller can accept", status_error="Trade is not in pending state")
 
     trade.status = "accepted"
     await db.commit()
@@ -158,13 +224,7 @@ async def reject_trade(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.seller_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the seller can reject")
-    if trade.status != "pending_seller":
-        raise HTTPException(status_code=400, detail="Trade is not in pending state")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role="seller", allowed_statuses="pending_seller", role_error="Only the seller can reject", status_error="Trade is not in pending state")
 
     trade.status = "rejected"
     await db.commit()
@@ -180,13 +240,7 @@ async def cancel_trade(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.buyer_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the buyer can cancel")
-    if trade.status not in ("pending_seller", "accepted"):
-        raise HTTPException(status_code=400, detail="Trade cannot be cancelled in current state")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role="buyer", allowed_statuses=["pending_seller", "accepted"], role_error="Only the buyer can cancel", status_error="Trade cannot be cancelled in current state")
 
     trade.status = "cancelled"
     await db.commit()
@@ -203,13 +257,7 @@ async def abort_trade(
 ):
     """Either party can abort an accepted trade that didn't go through."""
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.buyer_id != user_id and trade.seller_id != user_id:
-        raise HTTPException(status_code=403, detail="Not a participant in this trade")
-    if trade.status != "accepted":
-        raise HTTPException(status_code=400, detail="Only accepted trades can be aborted")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role=None, allowed_statuses="accepted", role_error="Not a participant in this trade", status_error="Only accepted trades can be aborted")
 
     trade.status = "cancelled"
     trade.seller_confirmed = False
@@ -228,13 +276,7 @@ async def confirm_transfer(
 ):
     """Seller confirms they have transferred the vehicle."""
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.seller_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the seller can confirm transfer")
-    if trade.status != "accepted":
-        raise HTTPException(status_code=400, detail="Trade must be accepted first")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role="seller", allowed_statuses="accepted", role_error="Only the seller can confirm transfer", status_error="Trade must be accepted first")
 
     trade.seller_confirmed = True
     if trade.buyer_confirmed:
@@ -255,13 +297,7 @@ async def confirm_receipt(
 ):
     """Buyer confirms they have received the vehicle."""
     user_id = current_user.id
-    trade = (await db.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    if trade.buyer_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the buyer can confirm receipt")
-    if trade.status != "accepted":
-        raise HTTPException(status_code=400, detail="Trade must be accepted first")
+    trade = await _get_trade_or_403(db, trade_id, user_id, role="buyer", allowed_statuses="accepted", role_error="Only the buyer can confirm receipt", status_error="Trade must be accepted first")
 
     trade.buyer_confirmed = True
     if trade.seller_confirmed:
