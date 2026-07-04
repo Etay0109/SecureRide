@@ -51,8 +51,7 @@ export default function ChatWidget() {
     setLoadingMessages(true);
     loadActiveConversation();
     loadMessages();
-    markAsRead();
-    msgPollRef.current = setInterval(() => { loadMessages(); markAsRead(); }, 3000);
+    msgPollRef.current = setInterval(loadMessages, 3000);
     return () => clearInterval(msgPollRef.current);
   }, [activeId, view]);
 
@@ -77,12 +76,6 @@ export default function ChatWidget() {
     try {
       setMessages(await api(`/chat/conversations/${activeId}/messages`));
     } catch {} finally { setLoadingMessages(false); }
-  }
-
-  async function markAsRead() {
-    try {
-      await api(`/chat/conversations/${activeId}/read`, { method: "PUT" });
-    } catch {}
   }
 
   async function handleSend(e) {

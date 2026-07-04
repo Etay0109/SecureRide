@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -177,10 +179,12 @@ async def delete_listing(
     if listing.seller_id != user_id:
         raise HTTPException(status_code=403, detail="Not your listing")
 
-    convs = await db.execute(select(Conversation).where(Conversation.listing_id == listing_id))
-    for conv in convs.scalars().all():
-        await db.execute(sa_delete(Message).where(Message.conversation_id == conv.id))
-        await db.execute(sa_delete(Conversation).where(Conversation.id == conv.id))
+    conv_ids = (await db.execute(
+        select(Conversation.id).where(Conversation.listing_id == listing_id)
+    )).scalars().all()
+    if conv_ids:
+        await db.execute(sa_delete(Message).where(Message.conversation_id.in_(conv_ids)))
+        await db.execute(sa_delete(Conversation).where(Conversation.id.in_(conv_ids)))
 
     await db.execute(sa_delete(Listing).where(Listing.id == listing_id))
     await db.commit()

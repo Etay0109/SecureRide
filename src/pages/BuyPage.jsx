@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
 import ListingCard from "../components/listings/ListingCard";
@@ -9,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 import EmptyState from "../components/ui/EmptyState";
 
 export default function BuyPage() {
-  const location = useLocation();
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +33,7 @@ export default function BuyPage() {
       .then((data) => setRecommendations(data))
       .catch(() => {})
       .finally(() => setRecsLoading(false));
-  }, [user, location.key]);
+  }, [user]);
 
 
   const filtered = listings

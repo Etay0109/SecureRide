@@ -39,9 +39,15 @@ export default function NotificationBell() {
     return str.length > len ? str.slice(0, len) + "..." : str;
   }
 
-  function openChatWidget(conversationId) {
+  async function openChatWidget(conversationId) {
     setOpen(false);
     window.dispatchEvent(new CustomEvent("openChat", { detail: { conversationId } }));
+    if (conversationId) {
+      try {
+        await api(`/chat/conversations/${conversationId}/read`, { method: "PUT" });
+      } catch {}
+      fetchUnread();
+    }
   }
 
   return (

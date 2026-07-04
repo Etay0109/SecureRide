@@ -33,6 +33,7 @@ export default function ListingCard({ listing }) {
               src={listing.photos[photoIndex]}
               alt={`${listing.vehicle_brand} ${listing.vehicle_model}`}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             {photoCount > 1 && (
               <>

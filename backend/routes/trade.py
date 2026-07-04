@@ -85,36 +85,7 @@ async def trades_to_responses(trades: list["Trade"], db: AsyncSession) -> list[T
 
 # Convert a Trade database object into an API response.
 async def trade_to_response(trade: Trade, db: AsyncSession) -> TradeResponse:
-    vehicle = None
-    if trade.frame_number:
-        vehicle = (await db.execute(
-            select(Vehicle).where(Vehicle.frame_number == trade.frame_number)
-        )).scalar_one_or_none()
-
-    buyer = (await db.execute(select(User).where(User.id == trade.buyer_id))).scalar_one_or_none()
-    seller = (await db.execute(select(User).where(User.id == trade.seller_id))).scalar_one_or_none()
-
-    return TradeResponse(
-        id=trade.id,
-        listing_id=trade.listing_id,
-        buyer_id=trade.buyer_id,
-        seller_id=trade.seller_id,
-        frame_number=trade.frame_number or trade.vehicle_frame_number_snapshot,
-        price=trade.price,
-        status=trade.status,
-        seller_confirmed=trade.seller_confirmed,
-        buyer_confirmed=trade.buyer_confirmed,
-        created_at=trade.created_at,
-        completed_at=trade.completed_at,
-        vehicle_brand=(vehicle.brand if vehicle else None) or trade.vehicle_brand_snapshot,
-        vehicle_model=(vehicle.model if vehicle else None) or trade.vehicle_model_snapshot,
-        vehicle_type=(vehicle.vehicle_type if vehicle else None) or trade.vehicle_type_snapshot,
-        vehicle_color=(vehicle.color if vehicle else None) or trade.vehicle_color_snapshot,
-        buyer_first_name=buyer.first_name if buyer else None,
-        buyer_last_name=buyer.last_name if buyer else None,
-        seller_first_name=seller.first_name if seller else None,
-        seller_last_name=seller.last_name if seller else None,
-    )
+    return (await trades_to_responses([trade], db))[0]
 
 
 # Create a new trade request for a listing.
@@ -328,12 +299,12 @@ async def _complete_trade(trade: Trade, db: AsyncSession):
     trade.vehicle_color_snapshot = vehicle.color
 
     if listing_id:
-        convs = (await db.execute(
-            select(Conversation).where(Conversation.listing_id == listing_id)
+        conv_ids = (await db.execute(
+            select(Conversation.id).where(Conversation.listing_id == listing_id)
         )).scalars().all()
-        for conv in convs:
-            await db.execute(sa_delete(Message).where(Message.conversation_id == conv.id))
-            await db.execute(sa_delete(Conversation).where(Conversation.id == conv.id))
+        if conv_ids:
+            await db.execute(sa_delete(Message).where(Message.conversation_id.in_(conv_ids)))
+            await db.execute(sa_delete(Conversation).where(Conversation.id.in_(conv_ids)))
 
         other_trades = (await db.execute(
             select(Trade).where(
