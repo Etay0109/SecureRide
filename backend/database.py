@@ -11,7 +11,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set")
 
-# asyncpg doesn't understand sslmode=require — strip it and pass ssl=True via connect_args
 clean_url = DATABASE_URL.replace("?sslmode=require", "").replace("&sslmode=require", "")
 ssl_context = ssl.create_default_context()
 

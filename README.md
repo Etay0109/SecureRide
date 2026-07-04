@@ -67,9 +67,9 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 
 - Register vehicles by **frame number** (unique identifier)
 - Link vehicles to verified user identities
-- **Stolen vehicle registry** — owners can flag vehicles as stolen
+- **Stolen vehicle registry** - owners can flag vehicles as stolen
 - Anti-fraud protection: registering a stolen frame number **automatically blocks** the user
-- Owners can **delete registered vehicles** — blocked only if the vehicle has an active listing or an active pending/accepted trade
+- Owners can **delete registered vehicles** - blocked only if the vehicle has an active listing or an active pending/accepted trade
 
 ### 🛒 Marketplace
 
@@ -81,10 +81,10 @@ Each listing in the "Recommended for You" section displays a **Match Score** (0�
 ### 🤝 Secure Trading
 
 - Structured trade flow: buyer requests → seller accepts/rejects → mutual confirmation
-- **Dual confirmation** — both seller and buyer must confirm the trade happened
+- **Dual confirmation** - both seller and buyer must confirm the trade happened
 - Automatic **ownership transfer** upon trade completion — purchased vehicle immediately appears in the buyer's My Vehicles dashboard
 - Option to **abort** a trade if it did not go through
-- **Trade history snapshot** — vehicle details (brand, model, type, color) are permanently stored in the trade record at completion time, so Buy/Sale History remains accurate even if the vehicle is later deleted
+- **Trade history snapshot** - vehicle details (brand, model, type, color) are permanently stored in the trade record at completion time, so Buy/Sale History remains accurate even if the vehicle is later deleted
 
 ### 👤 Profile Dashboard
 

@@ -41,13 +41,6 @@ def _price_band_index(price: float) -> int:
 
 # Convert a listing into a weighted numerical feature vector.
 def _build_feature_vector(listing_row, city_index: dict[str, int], num_cities: int) -> list[float]:
-    """Encode a listing into a weighted numerical feature vector.
-
-    Each feature group is multiplied by its weight so that vehicle_type
-    has the most influence, then price, city, and condition.
-
-    Layout: [type one-hot (3)] + [condition one-hot (2)] + [price band one-hot (5)] + [city one-hot (N)]
-    """
     listing, vehicle, _seller = listing_row
 
     w_type = FEATURE_WEIGHTS["vehicle_type"]
@@ -139,7 +132,6 @@ async def get_recommendations(
 ):
     user_id = current_user.id
 
-    # 1. Fetch all available listings (non-stolen, not user's own)
     all_rows_result = await db.execute(
         select(Listing, Vehicle, User)
         .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
@@ -151,7 +143,6 @@ async def get_recommendations(
     if not all_rows:
         return []
 
-    # 2. Build city index for one-hot encoding
     cities = sorted({
         (row[0].city or "").strip().lower()
         for row in all_rows
@@ -160,7 +151,6 @@ async def get_recommendations(
     city_index = {city: i for i, city in enumerate(cities)}
     num_cities = len(cities)
 
-    # 3. Build feature vectors for every listing
     listing_vectors: dict[str, list[float]] = {}
     listing_data: dict[str, tuple] = {}
     for row in all_rows:
@@ -169,13 +159,11 @@ async def get_recommendations(
         listing_vectors[listing.id] = vec
         listing_data[listing.id] = (listing, vehicle, seller)
 
-    # 4. Fetch user's interactions
     interactions_result = await db.execute(
         select(UserInteraction).where(UserInteraction.user_id == user_id)
     )
     interactions = interactions_result.scalars().all()
 
-    # 5. Cold start: no interactions -> return most-viewed listings (popularity)
     if not interactions:
         popularity = await db.execute(
             select(UserInteraction.listing_id, func.count().label("cnt"))
@@ -195,14 +183,12 @@ async def get_recommendations(
             for _, listing, vehicle, seller in scored[:limit]
         ]
 
-    # 6. Aggregate interaction weights per listing (take the highest action per listing)
     listing_max_weight: dict[str, float] = defaultdict(float)
     for inter in interactions:
         w = ACTION_WEIGHTS.get(inter.action_type, 0)
         if w > listing_max_weight[inter.listing_id]:
             listing_max_weight[inter.listing_id] = w
 
-    # 7. Build user preference vector from interacted listings
     vectors_with_weights = []
     for lid, weight in listing_max_weight.items():
         if lid in listing_vectors:
@@ -217,7 +203,6 @@ async def get_recommendations(
 
     user_vector = _weighted_average_vector(vectors_with_weights)
 
-    # 8. Score each candidate listing by cosine similarity
     scored_listings = []
     for lid, vec in listing_vectors.items():
         score = _cosine_similarity(user_vector, vec)

@@ -4,6 +4,7 @@ from models import Listing, Vehicle, User
 from schemas import ListingResponse, RecommendedListingResponse
 
 
+# Convert database models into a listing API response.
 def listing_to_response(
     listing: Listing,
     vehicle: Vehicle,

@@ -14,7 +14,7 @@ from routes.auth import require_active_user, require_auth
 
 router = APIRouter()
 
-
+# Build the conversation title and listing price for display.
 async def _conversation_title(conv, db: AsyncSession) -> tuple[str, float]:
     listing_title = ""
     listing_price = 0.0
@@ -298,7 +298,6 @@ async def get_unread_notifications(
 
     conv_ids = [c.id for c in conversations]
 
-    # Batch: all messages from others in these conversations
     msgs_res = await db.execute(
         select(Message)
         .where(Message.conversation_id.in_(conv_ids), Message.sender_id != user_id)
@@ -308,7 +307,6 @@ async def get_unread_notifications(
     for m in msgs_res.scalars().all():
         msgs_by_conv.setdefault(m.conversation_id, []).append(m)
 
-    # Compute unread per conversation
     unread_convs: list[tuple] = []
     for conv in conversations:
         is_buyer = conv.buyer_id == user_id
@@ -322,7 +320,6 @@ async def get_unread_notifications(
     if not unread_convs:
         return {"total_unread": 0, "notifications": []}
 
-    # Batch: other_users and listing titles for unread conversations only
     other_user_ids = list({c.seller_id if c.buyer_id == user_id else c.buyer_id for c, _, _ in unread_convs})
     users_res = await db.execute(select(User).where(User.id.in_(other_user_ids)))
     other_users = {u.id: u for u in users_res.scalars().all()}

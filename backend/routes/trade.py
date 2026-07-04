@@ -11,7 +11,7 @@ from routes.auth import require_active_user
 
 router = APIRouter()
 
-
+# Helper function to get a trade and check user access and trade status.
 async def _get_trade_or_403(
     db: AsyncSession,
     trade_id: str,
@@ -42,7 +42,7 @@ async def _get_trade_or_403(
             raise HTTPException(status_code=400, detail=status_error)
     return trade
 
-
+# Convert trade objects into API responses with related user and vehicle data.
 async def trades_to_responses(trades: list["Trade"], db: AsyncSession) -> list[TradeResponse]:
     if not trades:
         return []
