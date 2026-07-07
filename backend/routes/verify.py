@@ -1,14 +1,16 @@
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
+from constants import ACTIVE_TRADE_STATUSES, TradeStatus
 from database import get_db
 from models import Vehicle, User, Listing, Trade
 from schemas import VerifyRequest, VehicleResponse
 from routes.auth import require_active_user
+from services.listing_service import remove_listing_with_conversations
 
 router = APIRouter()
 
@@ -48,16 +50,25 @@ async def toggle_stolen(
         active_trades = (await db.execute(
             select(Trade).where(
                 Trade.frame_number == frame_number,
-                Trade.status.in_(["pending_seller", "accepted"]),
+                Trade.status.in_(ACTIVE_TRADE_STATUSES),
             )
         )).scalars().all()
         for t in active_trades:
-            t.status = "cancelled"
-            t.listing_id = None 
+            t.status = TradeStatus.CANCELLED
+            t.listing_id = None
+            # Snapshot vehicle details so cancelled trades keep their history,
+            # consistent with completed trades.
+            t.vehicle_frame_number_snapshot = vehicle.frame_number
+            t.vehicle_brand_snapshot = vehicle.brand
+            t.vehicle_model_snapshot = vehicle.model
+            t.vehicle_type_snapshot = vehicle.vehicle_type
+            t.vehicle_color_snapshot = vehicle.color
 
-        await db.execute(
-            sa_delete(Listing).where(Listing.frame_number == frame_number)
-        )
+        listing_ids = (await db.execute(
+            select(Listing.id).where(Listing.frame_number == frame_number)
+        )).scalars().all()
+        for lid in listing_ids:
+            await remove_listing_with_conversations(db, lid)
 
     await db.commit()
     await db.refresh(vehicle)
@@ -159,7 +170,7 @@ async def delete_vehicle(
     trade_result = await db.execute(
         select(Trade).where(
             Trade.frame_number == frame_number,
-            Trade.status.in_(["pending_seller", "accepted"]),
+            Trade.status.in_(ACTIVE_TRADE_STATUSES),
         ).limit(1)
     )
     if trade_result.scalar_one_or_none():

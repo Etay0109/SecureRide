@@ -19,7 +19,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!user?.is_admin) navigate("/", { replace: true });
-  }, []);
+  }, [user, navigate]);
 
   async function handleOpenChat(blockedUser) {
     setChatUser(blockedUser);

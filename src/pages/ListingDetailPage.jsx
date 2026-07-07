@@ -7,6 +7,8 @@ import ListingDetailActions from "../components/listing/ListingDetailActions";
 import ListingEditForm from "../components/listing/ListingEditForm";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+import { MAX_PHOTOS, TRADE_STATUS, ACTIVE_TRADE_STATUSES } from "../utils/constants";
+import { readImageAsDataUrl } from "../utils/readImageFile";
 
 export default function ListingDetailPage() {
   const { id } = useParams();
@@ -73,12 +75,13 @@ export default function ListingDetailPage() {
   }
 
   function handleEditPhotoFiles(files) {
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      if (file.size > 10 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onload = (e) => setEditPhotos((prev) => prev.length >= 8 ? prev : [...prev, e.target.result]);
-      reader.readAsDataURL(file);
+    Array.from(files).forEach(async (file) => {
+      try {
+        const dataUrl = await readImageAsDataUrl(file);
+        setEditPhotos((prev) => (prev.length >= MAX_PHOTOS ? prev : [...prev, dataUrl]));
+      } catch {
+        // Skip files that fail validation (wrong type or too large).
+      }
     });
   }
 
@@ -95,7 +98,7 @@ export default function ListingDetailPage() {
   async function handleTradeAction(tradeId, action) {
     try {
       const updated = await api(`/trades/${tradeId}/${action}`, { method: "PUT" });
-      if (updated.status === "completed") { navigate("/profile", { replace: true }); return; }
+      if (updated.status === TRADE_STATUS.COMPLETED) { navigate("/profile", { replace: true }); return; }
       setTrades((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) { alert(err.message); }
   }
@@ -108,9 +111,9 @@ export default function ListingDetailPage() {
     } catch (err) { alert(err.message); }
   }
 
-  const myActiveTrade = trades.find((t) => t.buyer_id === user?.id && ["pending_seller", "accepted"].includes(t.status));
-  const pendingTradesForSeller = trades.filter((t) => t.seller_id === user?.id && t.status === "pending_seller");
-  const acceptedTradeForSeller = trades.find((t) => t.seller_id === user?.id && t.status === "accepted");
+  const myActiveTrade = trades.find((t) => t.buyer_id === user?.id && ACTIVE_TRADE_STATUSES.includes(t.status));
+  const pendingTradesForSeller = trades.filter((t) => t.seller_id === user?.id && t.status === TRADE_STATUS.PENDING_SELLER);
+  const acceptedTradeForSeller = trades.find((t) => t.seller_id === user?.id && t.status === TRADE_STATUS.ACCEPTED);
   const isOwnListing = user && listing && user.id === listing.seller_id;
 
   return (

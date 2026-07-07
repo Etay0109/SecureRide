@@ -4,19 +4,29 @@ from models import Listing, Vehicle, User
 from schemas import ListingResponse, RecommendedListingResponse
 
 
+# Decode the JSON-encoded photo column into a list of photo URLs.
+def load_photos(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
 # Convert database models into a listing API response.
 def listing_to_response(
     listing: Listing,
     vehicle: Vehicle,
     seller: User | None = None,
     score: float | None = None,
+    thumbnail_only: bool = False,
 ) -> ListingResponse | RecommendedListingResponse:
-    photos = []
-    if listing.photos:
-        try:
-            photos = json.loads(listing.photos)
-        except (json.JSONDecodeError, TypeError):
-            photos = []
+    photos = load_photos(listing.photos)
+
+    # List/grid views only render a single cover image.
+    if thumbnail_only:
+        photos = photos[:1]
 
     data = dict(
         id=listing.id,

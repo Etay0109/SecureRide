@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import String, DateTime, ForeignKey, Boolean, Float, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from constants import ConversationKind, RegistrationStatus, TradeStatus
 from database import Base
 
 
@@ -22,7 +23,8 @@ class User(Base):
     blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     blocked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     registration_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="pending", server_default="pending"
+        String(20), nullable=False,
+        default=RegistrationStatus.PENDING, server_default=RegistrationStatus.PENDING,
     )
     id_card_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -93,7 +95,7 @@ class Trade(Base):
     )
     price: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="pending_seller"
+        String(30), nullable=False, default=TradeStatus.PENDING_SELLER
     )
     seller_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     buyer_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -119,6 +121,17 @@ class Conversation(Base):
     listing_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    kind: Mapped[str] = mapped_column(
+        String(20), nullable=False,
+        default=ConversationKind.LISTING, server_default=ConversationKind.LISTING,
+    )
+    participant_a_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
+    participant_b_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
+    # Legacy columns kept in sync for existing queries/migrations.
     buyer_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True
     )
@@ -126,6 +139,12 @@ class Conversation(Base):
         String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     is_admin_chat: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    participant_a_last_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    participant_b_last_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     buyer_last_read_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

@@ -3,6 +3,7 @@ import SectionHeading from "../ui/SectionHeading";
 import EmptyState from "../ui/EmptyState";
 import TradeCard from "../trades/TradeCard";
 import { api } from "../../utils/api";
+import { TRADE_STATUS, ACTIVE_TRADE_STATUSES } from "../../utils/constants";
 
 function CompletedTradeRow({ trade, role }) {
   const isBuyer = role === "buyer";
@@ -55,9 +56,9 @@ export default function TradesHistorySection({ user, onVehicleTransferred }) {
     }
   };
 
-  const activeTrades = trades.filter((t) => ["pending_seller", "accepted"].includes(t.status));
-  const completedBuys = trades.filter((t) => t.status === "completed" && t.buyer_id === user?.id);
-  const completedSales = trades.filter((t) => t.status === "completed" && t.seller_id === user?.id);
+  const activeTrades = trades.filter((t) => ACTIVE_TRADE_STATUSES.includes(t.status));
+  const completedBuys = trades.filter((t) => t.status === TRADE_STATUS.COMPLETED && t.buyer_id === user?.id);
+  const completedSales = trades.filter((t) => t.status === TRADE_STATUS.COMPLETED && t.seller_id === user?.id);
 
   return (
     <>
@@ -68,7 +69,7 @@ export default function TradesHistorySection({ user, onVehicleTransferred }) {
         ) : (
           <div className="space-y-4">
             {activeTrades.map((t) => (
-              <TradeCard key={t.id} trade={t} isBuyer={t.buyer_id === user?.id} isSeller={t.seller_id === user?.id} onAction={handleTradeAction} />
+              <TradeCard key={t.id} trade={t} role={t.buyer_id === user?.id ? "buyer" : "seller"} onAction={handleTradeAction} />
             ))}
           </div>
         )}

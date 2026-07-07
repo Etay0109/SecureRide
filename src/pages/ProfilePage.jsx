@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
@@ -16,13 +16,13 @@ export default function ProfilePage() {
   const [vehicles, setVehicles] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       setVehicles(await api("/verify/my-vehicles"));
     } catch { /* silently fail */ }
-  };
+  }, []);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setProfile(await api("/auth/me"));
     } catch {
@@ -32,14 +32,14 @@ export default function ProfilePage() {
     } finally {
       setLoadingProfile(false);
     }
-  };
+  }, [navigate]);
 
   // Regression guard: refetch when user changes (e.g., after login via modal)
   useEffect(() => {
     if (!user) return;
     fetchProfile();
     fetchVehicles();
-  }, [user]);
+  }, [user, fetchProfile, fetchVehicles]);
 
   if (loadingProfile) {
     return (

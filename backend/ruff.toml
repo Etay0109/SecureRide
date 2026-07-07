@@ -1,0 +1,8 @@
+# backend/ruff.toml
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I"]
+# E712 (== False) is intentional for SQLAlchemy boolean column filters;
+# those lines carry inline `# noqa: E712`.

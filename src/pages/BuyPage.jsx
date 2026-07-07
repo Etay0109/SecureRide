@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
-import ListingCard from "../components/listings/ListingCard";
+import ListingCard from "../components/listing/ListingCard";
 import FilterBar from "../components/buy/FilterBar";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
@@ -12,7 +12,7 @@ export default function BuyPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
-  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsFetchedFor, setRecsFetchedFor] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
@@ -28,12 +28,24 @@ export default function BuyPage() {
 
   useEffect(() => {
     if (!localStorage.getItem("token") || !user) return;
-    setRecsLoading(true);
+    let cancelled = false;
     api("/recommendations/?limit=6")
-      .then((data) => setRecommendations(data))
-      .catch(() => {})
-      .finally(() => setRecsLoading(false));
+      .then((data) => {
+        if (!cancelled) {
+          setRecommendations(data ?? []);
+          setRecsFetchedFor(user.id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRecommendations([]);
+          setRecsFetchedFor(user.id);
+        }
+      });
+    return () => { cancelled = true; };
   }, [user]);
+
+  const recsLoading = Boolean(user && recsFetchedFor !== user.id);
 
 
   const filtered = listings

@@ -1,17 +1,18 @@
 import { useRef } from "react";
 import { inputClsRegister as inputCls } from "../../utils/constants";
+import { readImageAsDataUrl } from "../../utils/readImageFile";
 
 export default function RegistrationForm({ error, loading, onSubmit, onSwitchToLogin, onClose, idCardImage, setIdCardImage }) {
   const fileInputRef = useRef(null);
 
-  const handleIdCardFile = (e) => {
+  const handleIdCardFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-    if (file.size > 10 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setIdCardImage(ev.target.result);
-    reader.readAsDataURL(file);
+    try {
+      setIdCardImage(await readImageAsDataUrl(file));
+    } catch {
+      // Ignore invalid files; the required-field validation covers a missing image.
+    }
   };
 
   return (

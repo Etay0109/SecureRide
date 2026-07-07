@@ -2,8 +2,23 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from constants import RegistrationStatus, ConversationKind
+
 
 _MAX_IMAGE_B64 = 14_000_000  # ~10 MB binary
+_MAX_PHOTOS = 8
+
+
+# Shared validation for a listing's photo array (used by create/update).
+def _validate_photos(v: list[str] | None) -> list[str] | None:
+    if v is None:
+        return v
+    if len(v) > _MAX_PHOTOS:
+        raise ValueError(f"A listing can have at most {_MAX_PHOTOS} photos")
+    for photo in v:
+        if len(photo) > _MAX_IMAGE_B64:
+            raise ValueError("Each photo must be under 10 MB")
+    return v
 
 
 class RegisterRequest(BaseModel):
@@ -36,7 +51,7 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     blocked: bool = False
     blocked_reason: str | None = None
-    registration_status: str = "approved"
+    registration_status: str = RegistrationStatus.APPROVED
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -115,17 +130,12 @@ class CreateListingRequest(BaseModel):
     @field_validator("photos")
     @classmethod
     def photos_limits(cls, v: list[str]) -> list[str]:
-        if len(v) > 8:
-            raise ValueError("A listing can have at most 8 photos")
-        for photo in v:
-            if len(photo) > _MAX_IMAGE_B64:
-                raise ValueError("Each photo must be under 10 MB")
-        return v
+        return _validate_photos(v)
 
 
 class ListingResponse(BaseModel):
     id: str
-    frame_number: str
+    frame_number: str | None
     seller_id: str
     condition: str
     ownership_duration: str
@@ -155,14 +165,7 @@ class UpdateListingRequest(BaseModel):
     @field_validator("photos")
     @classmethod
     def photos_limits(cls, v: list[str] | None) -> list[str] | None:
-        if v is None:
-            return v
-        if len(v) > 8:
-            raise ValueError("A listing can have at most 8 photos")
-        for photo in v:
-            if len(photo) > _MAX_IMAGE_B64:
-                raise ValueError("Each photo must be under 10 MB")
-        return v
+        return _validate_photos(v)
 
 
 class CreateTradeRequest(BaseModel):
@@ -220,7 +223,7 @@ class RecommendedListingResponse(ListingResponse):
 
 class ConversationResponse(BaseModel):
     id: str
-    listing_id: str
+    listing_id: str | None = None
     buyer_id: str
     seller_id: str
     created_at: datetime
@@ -229,3 +232,34 @@ class ConversationResponse(BaseModel):
     listing_title: str | None = None
     last_message: str | None = None
     last_message_at: datetime | None = None
+
+
+class ConversationDetailResponse(BaseModel):
+    id: str
+    listing_id: str | None = None
+    kind: str = ConversationKind.LISTING
+    participant_a_id: str
+    participant_b_id: str
+    buyer_id: str
+    seller_id: str
+    other_user_first_name: str | None = None
+    other_user_last_name: str | None = None
+    listing_title: str = ""
+    listing_price: float = 0.0
+    is_admin_chat: bool = False
+
+
+class UnreadNotification(BaseModel):
+    conversation_id: str
+    listing_id: str | None = None
+    listing_title: str = ""
+    sender_first_name: str = "Unknown"
+    sender_last_name: str = ""
+    last_message: str
+    last_message_at: datetime
+    unread_count: int
+
+
+class UnreadResponse(BaseModel):
+    total_unread: int = 0
+    notifications: list[UnreadNotification] = []

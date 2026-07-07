@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 from jose import jwt, JWTError
 
+from constants import RegistrationStatus
 from database import get_db
-from encryption import encrypt_image
 from models import User
+from storage import delete_id_card, save_id_card
 from schemas import (
     RegisterRequest, LoginRequest, UserResponse, TokenResponse,
     UpdateEmailRequest, UpdatePasswordRequest, ResubmitRegistrationRequest,
@@ -84,8 +85,8 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         email=body.email,
         password=hash_password(body.password),
         id_number=body.id_number,
-        id_card_image=encrypt_image(body.id_card_image),
-        registration_status="pending",
+        id_card_image=save_id_card(body.id_card_image),
+        registration_status=RegistrationStatus.PENDING,
     )
     db.add(user)
     await db.commit()
@@ -107,24 +108,24 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Invalid email or password",
         )
 
-    if user.registration_status == "pending":
+    if user.registration_status == RegistrationStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your registration request is still waiting for admin approval.",
         )
 
-    if user.registration_status == "rejected":
+    if user.registration_status == RegistrationStatus.REJECTED:
         reason = user.blocked_reason or "No reason provided"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Your registration was permanently rejected. Reason: {reason}",
         )
 
-    if user.registration_status == "changes_requested":
+    if user.registration_status == RegistrationStatus.CHANGES_REQUESTED:
         reason = user.blocked_reason or "No reason provided"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "changes_requested", "reason": reason},
+            detail={"code": RegistrationStatus.CHANGES_REQUESTED, "reason": reason},
         )
 
     token = create_access_token({"sub": user.id, "email": user.email, "is_admin": user.is_admin})
@@ -156,7 +157,7 @@ async def require_active_user(
             status_code=403,
             detail=user.blocked_reason or "Your account has been blocked. Contact admin.",
         )
-    if user.registration_status != "approved":
+    if user.registration_status != RegistrationStatus.APPROVED:
         raise HTTPException(
             status_code=403,
             detail="Your account has not been approved yet.",
@@ -241,7 +242,7 @@ async def resubmit_registration(
     if not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if user.registration_status != "changes_requested":
+    if user.registration_status != RegistrationStatus.CHANGES_REQUESTED:
         raise HTTPException(
             status_code=400,
             detail="This account is not eligible for resubmission.",
@@ -254,9 +255,10 @@ async def resubmit_registration(
     if body.id_number:
         user.id_number = body.id_number
     if body.id_card_image:
-        user.id_card_image = encrypt_image(body.id_card_image)
+        delete_id_card(user.id_card_image)
+        user.id_card_image = save_id_card(body.id_card_image)
 
-    user.registration_status = "pending"
+    user.registration_status = RegistrationStatus.PENDING
     user.blocked_reason = None
     await db.commit()
     return {

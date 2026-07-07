@@ -1,15 +1,18 @@
 import { useRef } from "react";
+import { MAX_PHOTOS } from "../../utils/constants";
+import { readImageAsDataUrl } from "../../utils/readImageFile";
 
 export default function PhotoUploader({ photos, setPhotos }) {
   const inputRef = useRef(null);
 
   const handleFiles = (files) => {
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      if (file.size > 10 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onload = (e) => setPhotos((prev) => prev.length >= 8 ? prev : [...prev, e.target.result]);
-      reader.readAsDataURL(file);
+    Array.from(files).forEach(async (file) => {
+      try {
+        const dataUrl = await readImageAsDataUrl(file);
+        setPhotos((prev) => (prev.length >= MAX_PHOTOS ? prev : [...prev, dataUrl]));
+      } catch {
+        // Skip files that fail validation (wrong type or too large).
+      }
     });
   };
 

@@ -9,6 +9,7 @@ from database import get_db
 from models import UserInteraction, Listing, Vehicle, User
 from schemas import TrackInteractionRequest
 from routes.auth import require_active_user
+from repositories.listings import listing_join_query
 from serializers import listing_to_response
 
 router = APIRouter()
@@ -133,10 +134,8 @@ async def get_recommendations(
     user_id = current_user.id
 
     all_rows_result = await db.execute(
-        select(Listing, Vehicle, User)
-        .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-        .join(User, Listing.seller_id == User.id)
-        .where(Vehicle.stolen == False, Listing.seller_id != user_id) 
+        listing_join_query()
+        .where(Vehicle.stolen == False, Listing.seller_id != user_id)  # noqa: E712
     )
     all_rows = all_rows_result.all()
 
@@ -179,7 +178,7 @@ async def get_recommendations(
         scored.sort(key=lambda x: x[0], reverse=True)
 
         return [
-            listing_to_response(listing, vehicle, seller, score=0.0)
+            listing_to_response(listing, vehicle, seller, score=0.0, thumbnail_only=True)
             for _, listing, vehicle, seller in scored[:limit]
         ]
 
@@ -198,7 +197,7 @@ async def get_recommendations(
         results = []
         for row in all_rows[:limit]:
             listing, vehicle, seller = row
-            results.append(listing_to_response(listing, vehicle, seller, score=0.0))
+            results.append(listing_to_response(listing, vehicle, seller, score=0.0, thumbnail_only=True))
         return results
 
     user_vector = _weighted_average_vector(vectors_with_weights)
@@ -212,6 +211,6 @@ async def get_recommendations(
     scored_listings.sort(key=lambda x: x[0], reverse=True)
 
     return [
-        listing_to_response(listing, vehicle, seller, score=score)
+        listing_to_response(listing, vehicle, seller, score=score, thumbnail_only=True)
         for score, listing, vehicle, seller in scored_listings[:limit]
     ]

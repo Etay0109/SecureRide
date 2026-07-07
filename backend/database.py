@@ -28,11 +28,6 @@ async def get_db():
         yield session
 
 
-# Create database tables and run pending migrations.
-async def create_tables():
-    async with engine.begin() as conn:
-        from models import User, Vehicle, Listing, Conversation, Message, Trade, UserInteraction  # noqa: F401
-        await conn.run_sync(Base.metadata.create_all)
-
-    from migrations import run_migrations
-    await run_migrations(engine)
+# Schema is managed by Alembic (see backend/alembic). On first adoption against
+# an already-populated database, run `alembic stamp head` once (documented in
+# the README); thereafter use `alembic upgrade head`.

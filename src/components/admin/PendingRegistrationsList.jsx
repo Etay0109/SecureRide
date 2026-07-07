@@ -1,5 +1,42 @@
 import { useState, useEffect } from "react";
-import { api } from "../../utils/api";
+import { api, apiBlob } from "../../utils/api";
+
+function AdminIdCardImage({ userId, onView }) {
+  const [src, setSrc] = useState(null);
+
+  useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+    apiBlob(`/admin/registrations/${userId}/id-card`)
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [userId]);
+
+  if (!src) {
+    return (
+      <div className="h-40 bg-surface-container-high flex items-center justify-center text-xs text-on-surface-variant">
+        Loading ID card...
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-40 bg-surface-container-high cursor-pointer relative group" onClick={() => onView(src)}>
+      <img src={src} alt="ID Card" className="w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
+      </div>
+    </div>
+  );
+}
 
 export default function PendingRegistrationsList({ onImageView, onCountChange }) {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -67,13 +104,8 @@ export default function PendingRegistrationsList({ onImageView, onCountChange })
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {pendingUsers.map((pu) => (
             <div key={pu.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 overflow-hidden hover:shadow-lg hover:shadow-primary/5 transition-all">
-              {pu.id_card_image && (
-                <div className="h-40 bg-surface-container-high cursor-pointer relative group" onClick={() => onImageView(pu.id_card_image)}>
-                  <img src={pu.id_card_image} alt="ID Card" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
-                  </div>
-                </div>
+              {pu.has_id_card && (
+                <AdminIdCardImage userId={pu.id} onView={onImageView} />
               )}
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-3">

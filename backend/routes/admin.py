@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_
+from fastapi.responses import Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from constants import RegistrationStatus
 from database import get_db
-from encryption import decrypt_image
-from models import User, Conversation, Message
+from models import User, Conversation
 from schemas import RejectRegistrationRequest
 from routes.auth import require_admin
+from services.conversation_helpers import admin_conversation, admin_conversation_filter
+from storage import delete_id_card, id_card_bytes
 
 router = APIRouter()
+
 
 # Retrieve a user by ID or raise a 404 error if not found.
 async def get_user_or_404(db: AsyncSession, user_id: str) -> User:
@@ -17,6 +21,7 @@ async def get_user_or_404(db: AsyncSession, user_id: str) -> User:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
 
 # Return all currently blocked users.
 @router.get("/blocked-users")
@@ -77,30 +82,19 @@ async def start_admin_chat(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start or get existing admin chat with a user."""
     target = (await db.execute(select(User).where(User.id == target_user_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
 
+    kind_filter, pair_filter = admin_conversation_filter(admin.id, target_user_id)
     existing = (await db.execute(
-        select(Conversation).where(
-            Conversation.is_admin_chat == True,  # noqa: E712
-            or_(
-                (Conversation.buyer_id == admin.id) & (Conversation.seller_id == target_user_id),
-                (Conversation.buyer_id == target_user_id) & (Conversation.seller_id == admin.id),
-            ),
-        )
+        select(Conversation).where(kind_filter, pair_filter)
     )).scalar_one_or_none()
 
     if existing:
         return {"conversation_id": existing.id}
 
-    conv = Conversation(
-        listing_id=None,
-        buyer_id=target_user_id,
-        seller_id=admin.id,
-        is_admin_chat=True,
-    )
+    conv = admin_conversation(user_id=target_user_id, admin_id=admin.id)
     db.add(conv)
     await db.commit()
     await db.refresh(conv)
@@ -115,7 +109,7 @@ async def list_pending_registrations(
 ):
     result = await db.execute(
         select(User)
-        .where(User.registration_status == "pending")
+        .where(User.registration_status == RegistrationStatus.PENDING)
         .order_by(User.created_at.desc())
     )
     users = result.scalars().all()
@@ -126,11 +120,28 @@ async def list_pending_registrations(
             "last_name": u.last_name,
             "email": u.email,
             "id_number": u.id_number,
-            "id_card_image": decrypt_image(u.id_card_image) if u.id_card_image else None,
+            "has_id_card": bool(u.id_card_image),
             "created_at": u.created_at.isoformat(),
         }
         for u in users
     ]
+
+
+# Serve a pending registration's ID card image (admin-only, not embedded in list JSON).
+@router.get("/registrations/{user_id}/id-card")
+async def get_registration_id_card(
+    user_id: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_user_or_404(db, user_id)
+    if not user.id_card_image:
+        raise HTTPException(status_code=404, detail="ID card not found")
+    try:
+        raw, mime = id_card_bytes(user.id_card_image)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return Response(content=raw, media_type=mime)
 
 
 # Approve a pending user registration.
@@ -141,10 +152,11 @@ async def approve_registration(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_user_or_404(db, user_id)
-    if user.registration_status != "pending":
+    if user.registration_status != RegistrationStatus.PENDING:
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 
-    user.registration_status = "approved"
+    delete_id_card(user.id_card_image)
+    user.registration_status = RegistrationStatus.APPROVED
     user.id_card_image = None
     await db.commit()
     return {"status": "approved", "user_id": user.id}
@@ -159,10 +171,11 @@ async def permanently_block_registration(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_user_or_404(db, user_id)
-    if user.registration_status != "pending":
+    if user.registration_status != RegistrationStatus.PENDING:
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 
-    user.registration_status = "rejected"
+    delete_id_card(user.id_card_image)
+    user.registration_status = RegistrationStatus.REJECTED
     user.blocked = True
     user.blocked_reason = body.reason
     user.id_card_image = None
@@ -179,10 +192,10 @@ async def request_changes_registration(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_user_or_404(db, user_id)
-    if user.registration_status != "pending":
+    if user.registration_status != RegistrationStatus.PENDING:
         raise HTTPException(status_code=400, detail="Registration is not in pending state")
 
-    user.registration_status = "changes_requested"
+    user.registration_status = RegistrationStatus.CHANGES_REQUESTED
     user.blocked_reason = body.reason
     await db.commit()
     return {"status": "changes_requested", "user_id": user.id}

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { api } from "../../utils/api";
+import { readImageAsDataUrl } from "../../utils/readImageFile";
 
 export default function ChangesRequestedFlow({ changesRequested, onClose, onBack }) {
   const [resubmitLoading, setResubmitLoading] = useState(false);
@@ -8,14 +9,15 @@ export default function ChangesRequestedFlow({ changesRequested, onClose, onBack
   const [newIdCardImage, setNewIdCardImage] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleIdCardFile = (e) => {
+  const handleIdCardFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { setResubmitError("Please upload an image file"); return; }
-    if (file.size > 10 * 1024 * 1024) { setResubmitError("ID card image must be under 10 MB"); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => setNewIdCardImage(ev.target.result);
-    reader.readAsDataURL(file);
+    try {
+      setResubmitError("");
+      setNewIdCardImage(await readImageAsDataUrl(file));
+    } catch (err) {
+      setResubmitError(err.message);
+    }
   };
 
   const handleResubmit = async (e) => {

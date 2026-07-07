@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import PageFooter from "../components/ui/PageFooter";
 import VehicleSelectionStep from "../components/sell/VehicleSelectionStep";
@@ -9,7 +8,6 @@ import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 
 export default function SellPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);

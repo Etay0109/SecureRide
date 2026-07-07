@@ -13,6 +13,9 @@ dist/
 dist-ssr/
 .vite/
 
+# Uploaded listing photos (served from disk, not committed)
+backend/uploads/
+
 # Environment variable files (frontend / root-level)
 .env
 .env.local

@@ -190,13 +190,17 @@ secureRide/
 │
 ├── backend/                          # FastAPI Backend
 │   ├── main.py                       # App setup, CORS, routers
-│   ├── database.py                   # DB engine, sessions, table creation
+│   ├── database.py                   # DB engine & sessions (schema via Alembic)
 │   ├── models.py                     # SQLAlchemy ORM models
+│   ├── constants.py                  # Trade/registration status enums
 │   ├── schemas.py                    # Pydantic request/response schemas
 │   ├── serializers.py                # Shared listing serialization helpers
 │   ├── encryption.py                 # Fernet encrypt/decrypt utilities
-│   ├── migrations.py                 # Schema migration helpers
+│   ├── alembic.ini                   # Alembic configuration
+│   ├── alembic/                      # Migration environment & versions
 │   ├── requirements.txt              # Python dependencies
+│   ├── services/
+│   │   └── listing_service.py        # Cross-route listing cleanup
 │   └── routes/
 │       ├── auth.py                   # Register, login, profile updates
 │       ├── verify.py                 # Vehicle registration & deletion
@@ -208,7 +212,9 @@ secureRide/
 │
 ├── docs/
 │   └── images/                       # Screenshots & architecture diagrams
-├── index.html                        # HTML shell + Tailwind CDN config
+├── index.html                        # HTML shell (Google Fonts)
+├── tailwind.config.js                # Tailwind theme & content config
+├── postcss.config.js                 # PostCSS (Tailwind + autoprefixer)
 ├── package.json                      # Frontend dependencies
 ├── vite.config.js                    # Vite config with API proxy
 └── eslint.config.js                  # ESLint configuration
@@ -240,13 +246,30 @@ pip install -r requirements.txt
 # Create a .env file (see Environment Variables section)
 cp .env.example .env
 
+# Apply database migrations (see Database Migrations below)
+alembic upgrade head
+
 # Start the backend server
 uvicorn main:app --reload --port 8001
 ```
 
 The API will be available at `http://localhost:8001`.
 
-> **Database:** Tables are created automatically on first startup — no manual migration step is needed.
+### Database Migrations
+
+The schema is managed with **Alembic** (`backend/alembic/`), not built at startup.
+
+- **Fresh database:** `alembic upgrade head` creates the full schema.
+- **Existing, already-populated database** (upgrading from the old auto-create
+  behavior): run this **once** to record the current schema without changing it,
+  then use `alembic upgrade head` from then on:
+
+  ```bash
+  cd backend
+  alembic stamp head
+  ```
+
+`DATABASE_URL` is read from the environment (the same value used by the app).
 
 ### Frontend Setup
 
@@ -356,6 +379,12 @@ Built-in messaging system enabling secure communication between buyers, sellers,
 Administrative dashboard for reviewing registrations, approving users, managing blocked accounts, and moderating the platform.
 
 ![Admin Dashboard](docs/images/admin-dashboard.png)
+
+---
+
+## 🔭 Future Work
+
+- **Real-time chat and notifications:** the chat and notification bell currently poll the API on an interval. A WebSocket (or Server-Sent Events) channel would deliver messages and unread counts instantly and reduce redundant requests.
 
 ---
 

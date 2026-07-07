@@ -1,14 +1,17 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import Listing, Vehicle, User, Conversation, Message
+from models import Listing, Vehicle, User
 from schemas import CreateListingRequest, UpdateListingRequest
 from routes.auth import require_active_user
-from serializers import listing_to_response
+from repositories.listings import listing_join_query
+from serializers import listing_to_response, load_photos
+from services.listing_service import remove_listing_with_conversations
+from storage import persist_photos, delete_public_file
 
 router = APIRouter()
 
@@ -49,7 +52,7 @@ async def create_listing(
         city=body.city,
         address=body.address,
         description=body.description,
-        photos=json.dumps(body.photos) if body.photos else None,
+        photos=json.dumps(persist_photos(body.photos)) if body.photos else None,
     )
     db.add(listing)
     await db.commit()
@@ -79,24 +82,19 @@ async def available_vehicles(
 @router.get("/listings")
 async def all_listings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Listing, Vehicle, User)
-        .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-        .join(User, Listing.seller_id == User.id)
+        listing_join_query()
         .where(Vehicle.stolen == False)  # noqa: E712
         .order_by(Listing.created_at.desc())
     )
     rows = result.all()
-    return [listing_to_response(listing, vehicle, seller) for listing, vehicle, seller in rows]
+    return [listing_to_response(listing, vehicle, seller, thumbnail_only=True) for listing, vehicle, seller in rows]
 
 
 # Return details for a specific listing.
 @router.get("/listings/{listing_id}")
 async def get_listing(listing_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Listing, Vehicle, User)
-        .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-        .join(User, Listing.seller_id == User.id)
-        .where(Listing.id == listing_id)
+        listing_join_query().where(Listing.id == listing_id)
     )
     row = result.one_or_none()
     if not row:
@@ -113,14 +111,12 @@ async def my_listings(
 ):
     user_id = current_user.id
     result = await db.execute(
-        select(Listing, Vehicle, User)
-        .join(Vehicle, Listing.frame_number == Vehicle.frame_number)
-        .join(User, Listing.seller_id == User.id)
+        listing_join_query()
         .where(Listing.seller_id == user_id)
         .order_by(Listing.created_at.desc())
     )
     rows = result.all()
-    return [listing_to_response(listing, vehicle, seller) for listing, vehicle, seller in rows]
+    return [listing_to_response(listing, vehicle, seller, thumbnail_only=True) for listing, vehicle, seller in rows]
 
 
 # Update an existing listing owned by the authenticated user.
@@ -152,7 +148,11 @@ async def update_listing(
     if body.description is not None:
         listing.description = body.description
     if body.photos is not None:
-        listing.photos = json.dumps(body.photos) if body.photos else None
+        old_photos = load_photos(listing.photos)
+        new_photos = persist_photos(body.photos)
+        for orphan in set(old_photos) - set(new_photos):
+            delete_public_file(orphan)
+        listing.photos = json.dumps(new_photos) if new_photos else None
 
     await db.commit()
     await db.refresh(listing)
@@ -179,13 +179,9 @@ async def delete_listing(
     if listing.seller_id != user_id:
         raise HTTPException(status_code=403, detail="Not your listing")
 
-    conv_ids = (await db.execute(
-        select(Conversation.id).where(Conversation.listing_id == listing_id)
-    )).scalars().all()
-    if conv_ids:
-        await db.execute(sa_delete(Message).where(Message.conversation_id.in_(conv_ids)))
-        await db.execute(sa_delete(Conversation).where(Conversation.id.in_(conv_ids)))
+    for url in load_photos(listing.photos):
+        delete_public_file(url)
 
-    await db.execute(sa_delete(Listing).where(Listing.id == listing_id))
+    await remove_listing_with_conversations(db, listing_id)
     await db.commit()
     return {"status": "deleted"}
