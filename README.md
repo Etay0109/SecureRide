@@ -329,6 +329,10 @@ Interactive API documentation is available at `http://localhost:8001/docs` (Swag
 
 ---
 
+## 🔭 Future Work
+
+- **Real-time chat and notifications:** the chat and notification bell currently poll the API on an interval. A WebSocket (or Server-Sent Events) channel would deliver messages and unread counts instantly and reduce redundant requests.
+
 
 ## 📸 Screenshots
 
@@ -382,9 +386,9 @@ Administrative dashboard for reviewing registrations, approving users, managing 
 
 ---
 
-## 🔭 Future Work
+## 🎥 Demo Video
 
-- **Real-time chat and notifications:** the chat and notification bell currently poll the API on an interval. A WebSocket (or Server-Sent Events) channel would deliver messages and unread counts instantly and reduce redundant requests.
+[![Watch the Demo](https://img.shields.io/badge/YouTube-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/9idxUg9EySk)
 
 ---
 
