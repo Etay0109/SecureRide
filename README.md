@@ -194,13 +194,20 @@ secureRide/
 │   ├── models.py                     # SQLAlchemy ORM models
 │   ├── constants.py                  # Trade/registration status enums
 │   ├── schemas.py                    # Pydantic request/response schemas
-│   ├── serializers.py                # Shared listing serialization helpers
+│   ├── serializers.py                # DB model → API response conversion
+│   ├── storage.py                    # File persistence (photos & encrypted ID cards)
 │   ├── encryption.py                 # Fernet encrypt/decrypt utilities
 │   ├── alembic.ini                   # Alembic configuration
 │   ├── alembic/                      # Migration environment & versions
 │   ├── requirements.txt              # Python dependencies
+│   ├── repositories/
+│   │   └── listings.py               # Reusable listing JOIN query builder
 │   ├── services/
-│   │   └── listing_service.py        # Cross-route listing cleanup
+│   │   ├── listing_service.py        # Cross-route listing + conversation cleanup
+│   │   └── conversation_helpers.py   # Conversation participant & read-receipt helpers
+│   ├── scripts/
+│   │   ├── migrate_photos_to_disk.py     # One-off: move inline base64 photos to disk
+│   │   └── migrate_id_cards_to_disk.py   # One-off: move inline ID card ciphertext to disk
 │   └── routes/
 │       ├── auth.py                   # Register, login, profile updates
 │       ├── verify.py                 # Vehicle registration & deletion
